@@ -19,7 +19,7 @@
   },
   "build": {
     "productName": "Fund Pilot",
-    "appId": "com.fundpilot.app",
+    "appId": "com.wenxiang96.fundpilot",
     "asar": true,
     "copyright": "Copyright © 2025 Fund Pilot",
     "files": [
@@ -95,7 +95,7 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "fundpilot",
+        "owner": "wenxiang96",
         "repo": "fund-pilot"
       }
     ],
@@ -106,16 +106,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/fundpilot/fund-pilot.git"
+    "url": "git+https://github.com/wenxiang96/fund-pilot.git"
   },
   "author": {
-    "name": "fundpilot",
-    "email": "hello@fundpilot.app",
-    "url": "https://fundpilot.app"
+    "name": "wenxiang96",
+    "email": "wenxiang96@users.noreply.github.com",
+    "url": "https://github.com/wenxiang96/fund-pilot"
   },
   "license": "GPL-3.0",
   "bugs": {
-    "url": "https://github.com/fundpilot/fund-pilot/issues"
+    "url": "https://github.com/wenxiang96/fund-pilot/issues"
   },
   "keywords": [
     "electron",
@@ -136,7 +136,7 @@
     "echarts",
     "funds"
   ],
-  "homepage": "https://github.com/fundpilot",
+  "homepage": "https://github.com/wenxiang96",
   "devDependencies": {
     "@reduxjs/toolkit": "^2.9.1",
     "@types/color": "^4.2.0",

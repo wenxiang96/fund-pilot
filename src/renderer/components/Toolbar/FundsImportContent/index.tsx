@@ -26,9 +26,23 @@ export type FundsImportContentRef = {
 export type FundConfigItem = {
   code: string; // 基金代码（必填）
   name: string; // 基金名称
-  cyfe: number; // 持有份额
-  cbj: number; // 持仓成本价
+  cyfe: number | string; // 持有份额
+  cbj: number | string; // 持仓成本价
 };
+
+/** JSON 里的数字常被写成字符串，统一转成 number，避免 toFixed 崩溃 */
+function toNumber(value: unknown): number | undefined {
+  if (value === null || value === undefined || value === '') {
+    return undefined;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) ? num : undefined;
+}
+
+function formatNumber(value: unknown, digits: number) {
+  const num = toNumber(value);
+  return num === undefined ? '-' : num.toFixed(digits);
+}
 
 const { dialog } = window.contextModules.electron;
 
@@ -55,12 +69,16 @@ const FundsImportContent: React.FC<FundsImportContentProps> = (props) => {
       }
       const { codeMap: oldCodeMap } = Helpers.Fund.GetFundConfig(currentWalletCode, walletsConfig);
       const jsonFundConfig = json
-        .map((fund) => ({
-          name: '',
-          cyfe: Number(fund.cyfe) < 0 ? 0 : Number(fund.cyfe) || 0,
-          code: fund.code && String(fund.code),
-          cbj: Utils.NotEmpty(fund.cbj) ? (Number(fund.cbj) < 0 ? undefined : Number(fund.cbj)) : undefined,
-        }))
+        .map((fund) => {
+          const cyfe = toNumber(fund.cyfe);
+          const cbj = toNumber(fund.cbj);
+          return {
+            name: '',
+            cyfe: cyfe === undefined || cyfe < 0 ? 0 : cyfe,
+            code: fund.code === undefined || fund.code === null ? '' : String(fund.code).trim(),
+            cbj: cbj === undefined || cbj < 0 ? undefined : cbj,
+          };
+        })
         .filter(({ code }) => code);
       const jsonCodeMap = Utils.GetCodeMap(jsonFundConfig, 'code');
       // 去重复
@@ -154,8 +172,8 @@ const Merge: React.FC<{ data: Partial<FundConfigItem>[] }> = (props) => {
           </div>
           <div className={clsx(styles.infoBar)}>
             <div>{item.code}</div>
-            <div>持有份额: {item?.cyfe?.toFixed(2)}</div>
-            <div>成本价: {item?.cbj?.toFixed(4)}</div>
+            <div>持有份额: {formatNumber(item?.cyfe, 2)}</div>
+            <div>成本价: {formatNumber(item?.cbj, 4)}</div>
           </div>
         </div>
       </StandCard>
@@ -168,22 +186,41 @@ const JsonEditor: React.FC<{
 }> = (props) => {
   const json = JSON.stringify(props.data, null, 2);
   const rows = Math.max(props.data.length * 6 + 2, 10);
+  const [error, setError] = useState('');
   return (
-    <TextArea
-      rows={rows}
-      value={json}
-      onChange={(e) => {
-        try {
-          const value: FundConfigItem[] = JSON.parse(e.target.value);
-          // 不能修改code和名字
-          const namesUnchanged = value.map((_) => _.name).join('') === props.data.map((_) => _.name).join('');
-          const codesUnchanged = value.map((_) => _.code).join('') === props.data.map((_) => _.code).join('');
-          if (namesUnchanged && codesUnchanged) {
-            props.updateData(value);
+    <>
+      <TextArea
+        rows={rows}
+        value={json}
+        onChange={(e) => {
+          try {
+            const parsed = JSON.parse(e.target.value);
+            // 兼容 [{...}] 与 { funds: [...] } 两种写法
+            const value: FundConfigItem[] = Array.isArray(parsed)
+              ? parsed
+              : Array.isArray(parsed?.funds)
+                ? parsed.funds
+                : null;
+            if (!value) {
+              setError('需要一个 JSON 数组，例如 [{ "code": "320007", "cyfe": 1000 }]');
+              return;
+            }
+            // 不能修改 code 和名字，只允许改份额/成本价
+            const namesUnchanged = value.map((_) => _.name).join('') === props.data.map((_) => _.name).join('');
+            const codesUnchanged = value.map((_) => _.code).join('') === props.data.map((_) => _.code).join('');
+            if (namesUnchanged && codesUnchanged) {
+              setError('');
+              props.updateData(value);
+            } else {
+              setError('基金代码和名称不可修改，请只调整持有份额 / 成本价');
+            }
+          } catch (err) {
+            setError(`JSON 格式错误：${(err as Error).message}`);
           }
-        } catch {}
-      }}
-    ></TextArea>
+        }}
+      ></TextArea>
+      {!!error && <div className={styles.errorBar}>{error}</div>}
+    </>
   );
 };
 

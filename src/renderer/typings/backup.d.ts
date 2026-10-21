@@ -1,9 +1,9 @@
 declare namespace Backup {
   export interface Config {
     name: string;
-    author: 'fundpilot';
-    website: 'https://fundpilot.app';
-    github: 'https://github.com/fundpilot/fund-pilot';
+    author: 'wenxiang96';
+    website: 'https://github.com/wenxiang96/fund-pilot';
+    github: 'https://github.com/wenxiang96/fund-pilot';
     version: string;
     content: string;
     timestamp: number;

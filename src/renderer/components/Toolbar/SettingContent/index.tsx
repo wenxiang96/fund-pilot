@@ -269,7 +269,7 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
             },
             'card-body'
           )}
-          onClick={() => isUpdateAvaliable && onNavigate('https://fundpilot.app/#download')}
+          onClick={() => isUpdateAvaliable && onNavigate('https://github.com/wenxiang96/fund-pilot/releases/latest')}
         >
           <Logo />
           <Badge count={isUpdateAvaliable ? `v${updateInfo.version} 可更新` : 0} style={{ fontSize: 8 }} size="small">
@@ -786,7 +786,7 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
           <a
             className={styles.exitItem}
             onClick={() => {
-              shell.openExternal('https://github.com/fundpilot/fund-pilot');
+              shell.openExternal('https://github.com/wenxiang96/fund-pilot');
             }}
           >
             项目主页

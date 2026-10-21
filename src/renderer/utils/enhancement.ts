@@ -17,9 +17,9 @@ export async function GenerateBackupConfig() {
   const config = await electronStore.all('config');
   const fileConfig: Backup.Config = {
     name: 'Fund-Pilot-Backup',
-    author: 'fundpilot',
-    website: 'https://fundpilot.app',
-    github: 'https://github.com/fundpilot/fund-pilot',
+    author: 'wenxiang96',
+    website: 'https://github.com/wenxiang96/fund-pilot',
+    github: 'https://github.com/wenxiang96/fund-pilot',
     version: await app.getVersion(),
     content: await encodeFP(config),
     timestamp: Date.now(),
@@ -31,9 +31,9 @@ export async function GenerateBackupConfig() {
 export async function GenerateSyncConfig(config: { [x: string]: any }) {
   const fileConfig: Backup.Config = {
     name: 'Fund-Pilot-Sync',
-    author: 'fundpilot',
-    website: 'https://fundpilot.app',
-    github: 'https://github.com/fundpilot/fund-pilot',
+    author: 'wenxiang96',
+    website: 'https://github.com/wenxiang96/fund-pilot',
+    github: 'https://github.com/wenxiang96/fund-pilot',
     version: await app.getVersion(),
     content: await encodeFP(config),
     timestamp: Date.now(),

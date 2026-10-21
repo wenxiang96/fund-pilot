@@ -29,7 +29,7 @@ const Log: React.FC<LogProps> = () => {
   });
 
   function onDetail() {
-    shell.openExternal('https://github.com/fundpilot/fund-pilot/releases');
+    shell.openExternal('https://github.com/wenxiang96/fund-pilot/releases');
   }
 
   return (

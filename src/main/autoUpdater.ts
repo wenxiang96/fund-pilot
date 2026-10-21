@@ -20,7 +20,7 @@ export default class AppUpdater {
     // autoUpdater.updateConfigPath = path.join(__dirname, '../../dev-app-update.yml');
     // (autoUpdater as any).currentVersion = '1.0.0';
     autoUpdater.logger = log;
-    // autoUpdater.setFeedURL('https://download.fundpilot.app');
+    // autoUpdater.setFeedURL('https://github.com/wenxiang96/fund-pilot/releases');
     autoUpdater.on('error', (error) => {});
 
     // 检查事件
@@ -66,7 +66,7 @@ export default class AppUpdater {
             .then(({ response }) => {
               if (response === 0) {
                 console.info('下载更新');
-                shell.openExternal('https://fundpilot.app#download');
+                shell.openExternal('https://github.com/wenxiang96/fund-pilot/releases/latest');
               } else {
                 console.info('取消更新');
               }

@@ -9,7 +9,7 @@ export async function GetLog() {
         tag_name: string;
         body: string;
       }[]
-    >(`https://api.github.com/repos/fundpilot/fund-pilot/releases`, {
+    >(`https://api.github.com/repos/wenxiang96/fund-pilot/releases`, {
       responseType: 'json',
     });
     return data.map((item) => {

@@ -15,27 +15,27 @@ const process = window.contextModules.process;
 const linksGroup = Utils.Group(
   [
     {
-      url: 'mailto:hello@fundpilot.app',
-      name: '联系作者',
+      url: 'https://github.com/wenxiang96/fund-pilot/issues',
+      name: '问题反馈',
     },
     {
-      url: 'https://fundpilot.app',
-      name: '官方网站',
+      url: 'https://github.com/wenxiang96/fund-pilot/releases',
+      name: '下载地址',
     },
     {
-      url: 'https://fundpilot.app/blog',
+      url: 'https://github.com/wenxiang96/fund-pilot/releases',
       name: '更新日志',
     },
     {
-      url: 'https://github.com/fundpilot/fund-pilot',
+      url: 'https://github.com/wenxiang96/fund-pilot',
       name: 'Github',
     },
     {
-      url: 'https://github.com/fundpilot/fund-pilot/issues/new?assignees=&labels=&template=issue_template_bug.md',
+      url: 'https://github.com/wenxiang96/fund-pilot/issues/new?assignees=&labels=&template=issue_template_bug.md',
       name: 'BUG反馈',
     },
     {
-      url: 'https://github.com/fundpilot/fund-pilot/issues/new?assignees=&labels=&template=issue_template_feature.md',
+      url: 'https://github.com/wenxiang96/fund-pilot/issues/new?assignees=&labels=&template=issue_template_feature.md',
       name: '提出建议',
     },
   ],
@@ -45,15 +45,15 @@ const linksGroup = Utils.Group(
 const projectGroup = Utils.Group(
   [
     {
-      url: 'https://github.com/fundpilot/fund-pilot',
+      url: 'https://github.com/wenxiang96/fund-pilot',
       name: '源码仓库',
     },
     {
-      url: 'https://github.com/fundpilot/fund-pilot/releases',
+      url: 'https://github.com/wenxiang96/fund-pilot/releases',
       name: '版本发布',
     },
     {
-      url: 'https://github.com/fundpilot/fund-pilot/blob/main/LICENSE',
+      url: 'https://github.com/wenxiang96/fund-pilot/blob/main/LICENSE',
       name: '开源协议',
     },
   ],
@@ -107,13 +107,13 @@ const More: React.FC<MoreProps> = () => {
         <div className={clsx(styles.group, 'card-body')}>
           <section>
             <label>问题反馈：</label>
-            <a onClick={() => onNavigate('https://github.com/fundpilot/fund-pilot/issues')}>GitHub Issues</a>
+            <a onClick={() => onNavigate('https://github.com/wenxiang96/fund-pilot/issues')}>GitHub Issues</a>
           </section>
           <section>
             <label>功能建议：</label>
             <a
               onClick={() =>
-                onNavigate('https://github.com/fundpilot/fund-pilot/issues/new?assignees=&labels=&template=issue_template_feature.md')
+                onNavigate('https://github.com/wenxiang96/fund-pilot/issues/new?assignees=&labels=&template=issue_template_feature.md')
               }
             >
               新建讨论

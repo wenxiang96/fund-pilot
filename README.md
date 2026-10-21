@@ -115,7 +115,7 @@ src/
 ```json
 {
   "name": "Fund-Pilot-Backup",
-  "author": "fundpilot",
+  "author": "wenxiang96",
   "version": "1.0.0",
   "content": "fp://...",
   "timestamp": 1700000000000,

@@ -83,17 +83,41 @@ const ToolBar: React.FC<ToolBarProps> = () => {
     try {
       if (importFundsLoading || mergeFundsLoading) return;
       const text = await clipboard.readText();
-      if (text) {
-        const json: any[] = JSON.parse(text);
-        setImportFundsData(json);
-        await ipcRenderer.invoke('set-menubar-visible', true);
-        openFundsImportContent();
+      if (!text || !text.trim()) {
+        dialog.showMessageBox({
+          type: 'info',
+          title: `粘贴板为空`,
+          message: `请先复制基金 JSON 配置，例如：[{"code":"320007","cyfe":1000,"cbj":1.6988}]`,
+        });
+        return;
       }
+      const parsed = JSON.parse(text.trim());
+      // 兼容 [{...}] 与 { funds: [...] } 两种写法
+      const json: any[] = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.funds) ? parsed.funds : [];
+      const funds = json
+        .filter((item) => item && (item.code !== undefined && item.code !== null))
+        .map((item) => ({
+          ...item,
+          code: String(item.code).trim(),
+          cyfe: item.cyfe === undefined || item.cyfe === null || item.cyfe === '' ? 0 : Number(item.cyfe),
+          cbj: item.cbj === undefined || item.cbj === null || item.cbj === '' ? undefined : Number(item.cbj),
+        }));
+      if (!funds.length) {
+        dialog.showMessageBox({
+          type: 'info',
+          title: `解析失败`,
+          message: `未找到有效的基金配置，每条记录至少需要 code 字段`,
+        });
+        return;
+      }
+      setImportFundsData(funds);
+      await ipcRenderer.invoke('set-menubar-visible', true);
+      openFundsImportContent();
     } catch (e) {
       dialog.showMessageBox({
         type: 'info',
         title: `解析失败`,
-        message: `请检查JSON格式:${e}`,
+        message: `请检查 JSON 格式：${e instanceof Error ? e.message : String(e)}`,
       });
     }
   });

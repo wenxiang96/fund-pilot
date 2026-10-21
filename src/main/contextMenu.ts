@@ -85,7 +85,7 @@ export default class ContextMenuManager {
       },
       {
         click: () => {
-          shell.openExternal('https://github.com/fundpilot/fund-pilot/issues');
+          shell.openExternal('https://github.com/wenxiang96/fund-pilot/issues');
         },
         label: '帮助',
       },
@@ -146,7 +146,7 @@ export default class ContextMenuManager {
       { type: 'separator' },
       {
         click: () => {
-          shell.openExternal('https://github.com/fundpilot/fund-pilot');
+          shell.openExternal('https://github.com/wenxiang96/fund-pilot');
         },
         label: '项目主页',
       },
