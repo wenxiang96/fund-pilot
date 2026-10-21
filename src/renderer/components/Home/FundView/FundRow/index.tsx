@@ -73,6 +73,11 @@ const FundRow: React.FC<RowProps> = (props) => {
               </span>
             )}
             {isFix && <span className={styles.warn}>更新</span>}
+            {fund.estimateSource === 'sina' && (
+              <span className={styles.estimate} title="天天基金未提供盘中估值，改用新浪基金估值">
+                新浪估值
+              </span>
+            )}
           </div>
           {!conciseSetting && (
             <div className={styles.rowBar}>

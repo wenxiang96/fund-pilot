@@ -5,10 +5,11 @@ export enum ToolBarDwawerType {
 }
 
 export enum FundApiType {
-  Eastmoney, // 东方财富-天天基金
+  Eastmoney, // 东方财富-天天基金（自动降级：天天基金 → 新浪 → 重仓推算）
   Tencent, // 腾讯证券
   Ant, // 支付宝-蚂蚁基金
   Fund10jqka, // 同花顺-爱基金
+  Sina, // 新浪基金估值
 }
 
 export enum FundSortType {

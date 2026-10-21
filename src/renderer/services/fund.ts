@@ -5,6 +5,58 @@ import dayjs from 'dayjs';
 import request from '@/utils/request';
 import * as Utils from '@/utils';
 
+// ============ 新浪基金估值（数据源不提供估值时的第二来源） ============
+// https://stock.finance.sina.com.cn/fundInfo/api/openapi.php/FdFundService.getEstimateNetworthPic
+// 返回 JSONP，networth 序列末点为最新估值。dataSource 2/3 对应两套口径（pre_nav / pre_nav2）。
+export async function GetEstimateFromSina(code: string, dataSource: 2 | 3 = 2) {
+  try {
+    const { body } = await request(
+      'https://stock.finance.sina.com.cn/fundInfo/api/openapi.php/FdFundService.getEstimateNetworthPic',
+      {
+        searchParams: { symbol: code },
+        headers: {
+          'Referer': 'https://finance.sina.com.cn/',
+          'User-Agent': 'Mozilla/5.0',
+        },
+        responseType: 'text',
+      }
+    );
+    const text = String(body || '');
+    if (!text) return;
+
+    // 不带 callback 时返回纯 JSON，带 callback 时是 JSONP（可能带 /*<script>...*/ 前缀）
+    let json: any;
+    const start = text.indexOf('(');
+    const end = text.lastIndexOf(')');
+    if (start > 0 && end > start) {
+      json = JSON.parse(text.slice(start + 1, end));
+    } else {
+      const braceStart = text.indexOf('{');
+      json = JSON.parse(braceStart >= 0 ? text.slice(braceStart) : text);
+    }
+
+    const networth = json?.result?.data?.networth;
+    if (!Array.isArray(networth) || !networth.length) return;
+
+    const last = networth[networth.length - 1];
+    const navKey = dataSource === 2 ? 'pre_nav' : 'pre_nav2';
+    const rateKey = dataSource === 2 ? 'growthrate' : 'growthrate2';
+    const nav = Number(last[navKey]);
+    const rate = Number(last[rateKey]);
+    if (!Number.isFinite(nav) || !Number.isFinite(rate)) return;
+
+    return {
+      gsz: nav.toFixed(4),
+      // 新浪 growthrate 是小数（-0.00218），转成百分比
+      gszzl: (rate * 100).toFixed(2),
+      gztime: last.pre_date && last.min_time ? `${last.pre_date} ${String(last.min_time).slice(0, 5)}` : '',
+      source: `sina${dataSource}` as const,
+    };
+  } catch (error) {
+    return;
+  }
+}
+
 // 天天基金新版批量估值接口（fundgz 旧接口已于 2026-07 下线）
 // GET https://fundcomapi.tiantianfunds.com/mm/newCore/FundValuationLast?FCODES=161725,320007&FIELDS=...
 export async function GetValuationsFromEastmoney(codes: string[]) {

@@ -1,4 +1,5 @@
 import NP from 'number-precision';
+import dayjs from 'dayjs';
 import { defaultWallet } from '@/store/features/wallet';
 import * as Services from '@/services';
 import * as Enums from '@/utils/enums';
@@ -30,15 +31,33 @@ export async function GetFixFunds(funds: (Fund.ResponseItem & Fund.FixData)[]) {
 
 export async function GetFunds(config: Fund.SettingItem[], fundApiTypeSetting: Enums.FundApiType) {
   // 天天基金新版批量估值接口：一次请求拿全部分组的实时估值，避免逐只请求
-  if (fundApiTypeSetting === Enums.FundApiType.Eastmoney && config.length) {
+  if ((fundApiTypeSetting === Enums.FundApiType.Eastmoney || fundApiTypeSetting === Enums.FundApiType.Sina) && config.length) {
     const codes = config.map(({ code }) => code).filter(Boolean);
     const valuations = await Services.Fund.GetValuationsFromEastmoney(codes);
     if (valuations.length) {
       const valuationMap = Utils.GetCodeMap(valuations, 'fundcode');
-      const resolved = config
-        .map(({ code }) => valuationMap[code])
-        .filter(Utils.NotEmpty);
-      // 批量接口未返回的基金（极少）再逐只兜底
+      const resolved = config.map(({ code }) => valuationMap[code]).filter(Utils.NotEmpty);
+
+      // 数据源未提供盘中估值时，仅降级到新浪估值（不使用重仓股推算）
+      const missingEstimate = resolved.filter((fund) => !fund.gszzl);
+      if (missingEstimate.length) {
+        const sinaList = await Adapter.ChokeGroupAdapter(
+          missingEstimate.map((fund) => () => Services.Fund.GetEstimateFromSina(fund.fundcode!, 2)),
+          3,
+          300
+        );
+        missingEstimate.forEach((fund, index) => {
+          const result = sinaList[index];
+          if (result) {
+            fund.gsz = result.gsz;
+            fund.gszzl = result.gszzl;
+            fund.gztime = result.gztime || dayjs().format('YYYY-MM-DD HH:mm');
+            fund.estimateSource = 'sina';
+          }
+        });
+      }
+
+      // 批量接口完全没返回的基金再逐只兜底
       const missing = config.filter(({ code }) => !valuationMap[code]).map(({ code }) => code);
       if (missing.length) {
         const fallback = await Adapter.ChokeGroupAdapter(
@@ -83,11 +102,37 @@ export async function GetFund(code: string, fundApiTypeSetting: Enums.FundApiTyp
       return Services.Fund.FromFund123(code);
     case Enums.FundApiType.Fund10jqka:
       return Services.Fund.FromFund10jqka(code);
+    case Enums.FundApiType.Sina:
+      return GetFundFromSina(code);
     case Enums.FundApiType.Eastmoney:
     default:
       // 默认请求天天基金
       return Services.Fund.FromEastmoney(code);
   }
+}
+
+/**
+ * 新浪估值 + 天天基金基础信息（名称/净值）组合成完整基金数据
+ */
+async function GetFundFromSina(code: string) {
+  const [estimate, fix] = await Promise.all([
+    Services.Fund.GetEstimateFromSina(code, 2),
+    Services.Fund.GetFixFromEastMoney(code),
+  ]);
+  if (!estimate && !fix) {
+    return;
+  }
+  const dwjz = fix?.fixDwjz || '';
+  return {
+    fundcode: code,
+    name: fix?.fixName || '',
+    dwjz,
+    jzrq: fix?.fixDate || '',
+    gsz: estimate?.gsz || dwjz,
+    gszzl: estimate?.gszzl || '',
+    gztime: estimate?.gztime || `${new Date().getFullYear()}-暂无估值`,
+    estimateSource: estimate ? ('sina' as const) : undefined,
+  } as Fund.ResponseItem;
 }
 
 export function CalcFund(fund: Fund.ResponseItem & Fund.FixData, codeMap: Fund.CodeMap) {

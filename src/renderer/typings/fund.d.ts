@@ -20,6 +20,7 @@ declare namespace Fund {
     jzrq?: string; // 净值日期 '2021-01-01'
     dwjz?: string; // 当前净值 '1.1111'
     gsz?: string; // 估算值 '1.2222'
+    estimateSource?: 'eastmoney' | 'sina'; // 估值来源
   }
 
   export interface FixData {

@@ -41,22 +41,32 @@ export const APIOptions = [
   {
     name: '东方财富-天天基金',
     code: Enums.FundApiType.Eastmoney,
-    recommond: '★★★★★ (推荐)',
+    recommond:
+      '★★★★★ (推荐) 天天基金批量估值接口；未提供盘中估值的基金自动改用新浪估值（均为官方数据源，不做本地推算）',
   },
+  {
+    name: '新浪基金估值',
+    code: Enums.FundApiType.Sina,
+    recommond: '★★★★☆ 新浪财经估值曲线，对天天基金不提供估值的主动型基金覆盖更好',
+  },
+];
+
+/** 仅提供已公布净值、没有盘中估值的数据源（保留但标注，供偏好净值的用户选择） */
+export const APIOptionsNoEstimate = [
   {
     name: '支付宝-蚂蚁基金',
     code: Enums.FundApiType.Ant,
-    recommond: '★★★★☆',
+    recommond: '★★☆☆☆ 无盘中估值，仅已公布净值',
   },
   {
     name: '同花顺-爱基金',
     code: Enums.FundApiType.Fund10jqka,
-    recommond: '★★★★☆',
+    recommond: '★★☆☆☆ 无盘中估值，仅已公布净值',
   },
   {
     name: '腾讯证券',
     code: Enums.FundApiType.Tencent,
-    recommond: '★★★★☆',
+    recommond: '★★☆☆☆ 无盘中估值，仅已公布净值',
   },
 ];
 
@@ -292,18 +302,35 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
                     title="数据来源"
                     extra={
                       <div className={styles.guide}>
-                        <Guide list={APIOptions.map(({ name, recommond }) => ({ name, text: recommond }))} />
+                        <Guide
+                          list={[...APIOptions, ...APIOptionsNoEstimate].map(({ name, recommond }) => ({
+                            name,
+                            text: recommond,
+                          }))}
+                        />
                       </div>
                     }
                   >
                     <div className={clsx(styles.setting, 'card-body')}>
-                      <Radio.Group value={fundapiType} onChange={(e) => setFundApiType(e.target.value)}>
-                        {APIOptions.map((api) => (
-                          <Radio key={api.code} className={styles.radio} value={api.code}>
-                            {api.name}
-                          </Radio>
-                        ))}
-                      </Radio.Group>
+                      <div className={styles.apiGroup}>
+                        <Radio.Group value={fundapiType} onChange={(e) => setFundApiType(e.target.value)}>
+                          {APIOptions.map((api) => (
+                            <Radio key={api.code} className={styles.radio} value={api.code}>
+                              {api.name}
+                            </Radio>
+                          ))}
+                        </Radio.Group>
+                      </div>
+                      <div className={styles.apiDivider}>以下数据源无盘中估值（仅已公布净值）</div>
+                      <div className={styles.apiGroup}>
+                        <Radio.Group value={fundapiType} onChange={(e) => setFundApiType(e.target.value)}>
+                          {APIOptionsNoEstimate.map((api) => (
+                            <Radio key={api.code} className={styles.radio} value={api.code}>
+                              {api.name}
+                            </Radio>
+                          ))}
+                        </Radio.Group>
+                      </div>
                     </div>
                   </StandCard>
                   <StandCard
