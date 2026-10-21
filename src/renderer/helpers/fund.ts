@@ -29,6 +29,29 @@ export async function GetFixFunds(funds: (Fund.ResponseItem & Fund.FixData)[]) {
 }
 
 export async function GetFunds(config: Fund.SettingItem[], fundApiTypeSetting: Enums.FundApiType) {
+  // 天天基金新版批量估值接口：一次请求拿全部分组的实时估值，避免逐只请求
+  if (fundApiTypeSetting === Enums.FundApiType.Eastmoney && config.length) {
+    const codes = config.map(({ code }) => code).filter(Boolean);
+    const valuations = await Services.Fund.GetValuationsFromEastmoney(codes);
+    if (valuations.length) {
+      const valuationMap = Utils.GetCodeMap(valuations, 'fundcode');
+      const resolved = config
+        .map(({ code }) => valuationMap[code])
+        .filter(Utils.NotEmpty);
+      // 批量接口未返回的基金（极少）再逐只兜底
+      const missing = config.filter(({ code }) => !valuationMap[code]).map(({ code }) => code);
+      if (missing.length) {
+        const fallback = await Adapter.ChokeGroupAdapter(
+          missing.map((code) => () => GetFund(code, fundApiTypeSetting)),
+          3,
+          300
+        );
+        return [...resolved, ...fallback.filter(Utils.NotEmpty)];
+      }
+      return resolved;
+    }
+  }
+
   const collectors = config.map(
     ({ code }) =>
       () =>
@@ -76,16 +99,19 @@ export function CalcFund(fund: Fund.ResponseItem & Fund.FixData, codeMap: Fund.C
   const gzrq = fund.gztime?.slice(5, 10);
   const jzrq = fund.jzrq?.slice(5);
   const isFix = fund.fixDate && fund.fixDate === gzrq;
-  const gsz = isFix ? fund.fixDwjz! : fund.gsz!;
   const dwjz = isFix ? fund.fixDwjz! : fund.dwjz!;
-  const bjz = NP.minus(gsz!, fund.dwjz!) || 0;
+  // 部分主动型基金数据侧不再提供盘中估值（GSZ 为 null），此时用上一净值兜底，
+  // 保证收益计算不出现 -100% 之类的异常
+  const hasEstimate = !isFix && Utils.NotEmpty(fund.gsz) && fund.gsz !== '' && Number.isFinite(Number(fund.gsz));
+  const gsz = isFix ? fund.fixDwjz! : hasEstimate ? fund.gsz! : dwjz;
+  const bjz = NP.minus(gsz!, dwjz) || 0;
   const jrsygz = NP.times(cyfe, bjz);
   const gszz = NP.times(gsz!, cyfe);
   const cyje = NP.times(fund.dwjz!, cyfe);
   const cbje = cbj && NP.times(cbj, cyfe);
   const cysyl = cbj && NP.divide(NP.minus(dwjz, cbj), cbj, 0.01);
   const cysy = cbj && NP.times(NP.minus(dwjz, cbj), cyfe);
-  const gszzl = isFix ? fund.fixZzl : fund.gszzl; // 估算收益率
+  const gszzl = isFix ? fund.fixZzl : hasEstimate ? fund.gszzl : ''; // 估算收益率（无估值时为空）
   const gscysyl = cbj && cbj > 0 ? (isFix ? cysyl?.toFixed(2) : (Number(cysyl) + Number(gszzl)).toFixed(2)) : '';
   // cyfe: number; // 持有份额
   // bjz: number; // 比较值
@@ -105,6 +131,7 @@ export function CalcFund(fund: Fund.ResponseItem & Fund.FixData, codeMap: Fund.C
     jrsygz, // 今日收益估值
     gszz, // 估算
     isFix, // 是否更新净值
+    hasEstimate, // 是否有盘中估值
     gsz, // 估算值（最新）
     dwjz, // 单位净值（上一次）
     gszzl, // 估算收益率

@@ -5,6 +5,56 @@ import dayjs from 'dayjs';
 import request from '@/utils/request';
 import * as Utils from '@/utils';
 
+// 天天基金新版批量估值接口（fundgz 旧接口已于 2026-07 下线）
+// GET https://fundcomapi.tiantianfunds.com/mm/newCore/FundValuationLast?FCODES=161725,320007&FIELDS=...
+export async function GetValuationsFromEastmoney(codes: string[]) {
+  const FIELDS = 'FCODE,SHORTNAME,GSZZL,GZTIME,GSZ,NAV,PDATE';
+  const hosts = ['https://fundcomapi.tiantianfunds.com', 'https://fundcomapi.eastmoney.com'];
+  const list = codes.filter(Boolean);
+
+  for (const host of hosts) {
+    try {
+      const { body } = await request<{
+        data: {
+          FCODE: string;
+          SHORTNAME: string;
+          GSZ: number | null;
+          GSZZL: number | null;
+          GZTIME: string | null;
+          NAV: number | null;
+          PDATE: string | null;
+        }[];
+        success: boolean;
+      }>(`${host}/mm/newCore/FundValuationLast`, {
+        searchParams: {
+          FCODES: list.join(','),
+          FIELDS,
+        },
+        headers: {
+          'Referer': 'https://h5.1234567.com.cn/',
+          'User-Agent': 'Mozilla/5.0',
+        },
+        responseType: 'json',
+      });
+      if (Array.isArray(body?.data) && body.data.length) {
+        return body.data.map((item) => ({
+          fundcode: item.FCODE,
+          name: item.SHORTNAME,
+          // 主动型基金数据侧不再提供估值时 GSZ/GSZZL/GZTIME 为 null，保留净值信息
+          gsz: item.GSZ === null || item.GSZ === undefined ? String(item.NAV ?? '') : String(item.GSZ),
+          gszzl: item.GSZZL === null || item.GSZZL === undefined ? '' : String(item.GSZZL),
+          gztime: item.GZTIME || '',
+          dwjz: item.NAV === null || item.NAV === undefined ? '' : String(item.NAV),
+          jzrq: item.PDATE ? item.PDATE.slice(5) : '',
+        })) as Fund.ResponseItem[];
+      }
+    } catch (error) {
+      // 换备用域名
+    }
+  }
+  return [] as Fund.ResponseItem[];
+}
+
 // 天天基金
 export async function FromEastmoney(code: string) {
   try {
