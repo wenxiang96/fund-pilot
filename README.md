@@ -2,6 +2,11 @@
 
 # Fund Pilot
 
+[![Release](https://img.shields.io/github/v/release/wenxiang96/fund-pilot)](https://github.com/wenxiang96/fund-pilot/releases)
+[![Downloads](https://img.shields.io/github/downloads/wenxiang96/fund-pilot/total)](https://github.com/wenxiang96/fund-pilot/releases)
+[![Build](https://github.com/wenxiang96/fund-pilot/actions/workflows/build.yml/badge.svg)](https://github.com/wenxiang96/fund-pilot/actions/workflows/build.yml)
+[![License](https://img.shields.io/github/license/wenxiang96/fund-pilot)](LICENSE)
+
 > 基金 / 大盘 / 板块 / 股票 / 虚拟货币 菜单栏（状态栏）小应用，基于 Electron + React + TypeScript。
 
 Fund Pilot 是一个常驻系统托盘的小工具：实时显示基金估值与持仓收益、指数行情、板块资金流、个股走势、
@@ -29,6 +34,17 @@ Fund Pilot 是一个常驻系统托盘的小工具：实时显示基金估值与
 | 界面 | React 19、Ant Design 5、ECharts 6、CSS Modules |
 | 状态 | Redux Toolkit、ahooks |
 | 其它 | cheerio、undici、comlink（Worker）、openai |
+
+## 下载
+
+从 [Releases](https://github.com/wenxiang96/fund-pilot/releases) 获取最新版本：
+
+| 文件 | 说明 |
+|---|---|
+| `FundPilot-<version>-portable.exe` | **绿色版（推荐）**，单文件免安装，数据在 exe 同级目录 |
+| `FundPilot-Setup-<version>.exe` | NSIS 安装包，可自选安装目录 |
+
+> Windows SmartScreen 对未签名 exe 可能提示「未知发布者」，点击「更多信息 → 仍要运行」即可。
 
 ## 开发
 
