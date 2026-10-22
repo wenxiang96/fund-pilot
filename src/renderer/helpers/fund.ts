@@ -142,7 +142,11 @@ export function CalcFund(fund: Fund.ResponseItem & Fund.FixData, codeMap: Fund.C
   const memo = config?.memo;
 
   const gzrq = fund.gztime?.slice(5, 10);
-  const jzrq = fund.jzrq?.slice(5);
+  // jzrq 有的源给 "2026-10-20"，有的已经是 "10-20"，统一成 MM-DD
+  const jzrq = (() => {
+    const raw = fund.jzrq || '';
+    return /^\d{4}-/.test(raw) ? raw.slice(5) : raw;
+  })();
   const isFix = fund.fixDate && fund.fixDate === gzrq;
   const dwjz = isFix ? fund.fixDwjz! : fund.dwjz!;
   // 部分主动型基金数据侧不再提供盘中估值（GSZ 为 null），此时用上一净值兜底，

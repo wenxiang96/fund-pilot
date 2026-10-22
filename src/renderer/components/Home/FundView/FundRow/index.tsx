@@ -73,11 +73,6 @@ const FundRow: React.FC<RowProps> = (props) => {
               </span>
             )}
             {isFix && <span className={styles.warn}>更新</span>}
-            {fund.estimateSource === 'sina' && (
-              <span className={styles.estimate} title="天天基金未提供盘中估值，改用新浪基金估值">
-                新浪估值
-              </span>
-            )}
           </div>
           {!conciseSetting && (
             <div className={styles.rowBar}>
@@ -108,8 +103,14 @@ const FundRow: React.FC<RowProps> = (props) => {
           <section>
             <span>净值：</span>
             <span>{calcFundResult.dwjz}</span>
-            <span>（{calcFundResult.jzrq}）</span>
+            {!!calcFundResult.jzrq && <span>（{calcFundResult.jzrq}）</span>}
           </section>
+          {fund.estimateSource === 'sina' && (
+            <section className={styles.fullRow}>
+              <span>估值来源：</span>
+              <span className={styles.estimateHint}>新浪财经</span>
+            </section>
+          )}
           <section>
             <span>成本价：</span>
             {calcFundResult.cbj !== undefined ? <span>{calcFundResult.cbj}</span> : <a onClick={onEditClick}>录入</a>}

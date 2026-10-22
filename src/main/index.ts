@@ -36,6 +36,7 @@ import {
 } from './util';
 import HttpClient from './httpClient';
 import { readFundFile, writeFundFile, watchFundFile, setFundFilePath, getFundFilePath } from './fundFile';
+import { isAutoStartEnabled, setAutoStart, syncAutoStartPath } from './autoStart';
 import * as Enums from '../renderer/utils/enums';
 
 let mb: Menubar;
@@ -232,7 +233,6 @@ function main() {
   });
   // 快捷键
   const visibleHotkeyManager = new HotkeyManager({ mb });
-  const translateHotkeyManager = new HotkeyManager({ mb });
   ipcMain.handle('set-visible-hotkey', (event, keys: string) => {
     visibleHotkeyManager.registryHotkey(keys, ({ visible }) => {
       if (visible) {
@@ -240,11 +240,6 @@ function main() {
       } else {
         mb.showWindow();
       }
-    });
-  });
-  ipcMain.handle('set-translate-hotkey', (event, keys: string) => {
-    translateHotkeyManager.registryHotkey(keys, ({ visible }) => {
-      sendMessageToRenderer(mb.window, 'trigger-translate', visible);
     });
   });
   // 多窗口相关
@@ -292,6 +287,9 @@ function main() {
     watchFundFile();
     return next;
   });
+  // 开机自启
+  ipcMain.handle('auto-start-get', () => isAutoStartEnabled());
+  ipcMain.handle('auto-start-set', (event, enabled: boolean) => setAutoStart(enabled));
   ipcMain.handle('fund-file-reveal', () => {
     const target = getFundFilePath();
     shell.showItemInFolder(target);
@@ -361,6 +359,8 @@ function main() {
 
   // 基金 json 文件监听
   watchFundFile();
+  // 绿色版移动目录后，把注册表启动项指向当前 exe
+  syncAutoStartPath();
 
   // new AppUpdater({ icon: nativeIcon, win: mb.window });
 }

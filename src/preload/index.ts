@@ -36,7 +36,6 @@ contextBridge.exposeInMainWorld('contextModules', {
           'change-tab-active-key',
           'change-eye-status',
           'sync-store-data',
-          'trigger-translate',
           'fund-file-changed',
           'fund-file-reload',
           'force-reload-app',
@@ -70,6 +69,10 @@ contextBridge.exposeInMainWorld('contextModules', {
     saveString: (path: string, content: string) => ipcRenderer.invoke('io-saveString', { path, content }),
     readStringFile: (path: string) => ipcRenderer.invoke('io-readStringFile', { path }),
     readFile: (path: string) => ipcRenderer.invoke('io-readFile', { path }),
+  },
+  autoStart: {
+    get: () => ipcRenderer.invoke('auto-start-get'),
+    set: (enabled: boolean) => ipcRenderer.invoke('auto-start-set', enabled),
   },
   fundFile: {
     path: () => ipcRenderer.invoke('fund-file-path'),

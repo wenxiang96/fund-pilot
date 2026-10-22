@@ -1,162 +1,189 @@
-import React, { useState } from 'react';
-import { Select, Input, Button } from 'antd';
-import { useDebounceFn, useRequest } from 'ahooks';
-import * as NP from 'number-precision';
+import React, { useMemo, useState } from 'react';
+import { Select, Input, Button, Spin, Empty } from 'antd';
+import { useRequest } from 'ahooks';
+import clsx from 'clsx';
+import { RiArrowLeftRightLine, RiRefreshLine } from 'react-icons/ri';
 import CustomDrawerContent from '@/components/CustomDrawer/Content';
-import CustomDrawer from '@/components/CustomDrawer';
-import WebAppIcon from '@/components/Toolbar/AppCenterContent/WebAppIcon';
 import PureCard from '@/components/Card/PureCard';
-import ChartCard from '@/components/Card/ChartCard';
-import { searchWorkerWarp } from '@/workers';
-import { useDrawer, useAppSelector } from '@/utils/hooks';
-import * as Helpers from '@/helpers';
-import * as Enums from '@/utils/enums';
-import * as Services from '@/services';
+import StandCard from '@/components/Card/StandCard';
+import * as Services from '@/services/exchangeRate';
 import styles from './index.module.css';
 
-const DetailCoinContent = React.lazy(() => import('@/components/Home/CoinView/DetailCoinContent'));
 interface CalculatorProps {
   onEnter: () => void;
   onClose: () => void;
 }
 
-const { Option } = Select;
+const CURRENCIES = Services.COMMON_CURRENCIES;
+const QUICK_AMOUNTS = [100, 500, 1000, 5000, 10000];
 
 const Calculator: React.FC<CalculatorProps> = (props) => {
-  const { remoteCoins, coinsLoading } = useAppSelector((state) => state.coin);
-  const coinsState = useAppSelector((state) => state.coin.coins);
-  const remoteCoinsMap = useAppSelector((state) => state.coin.remoteCoinsMap);
-  const [coin, setCoin] = useState<Coin.DetailItem | null>(null);
-  const [num, setNum] = useState(1);
-  const [coins, setCoins] = useState<Coin.RemoteCoin[]>(remoteCoins);
-  const [price, setPrice] = useState({ cny: 0, btc: 0, usd: 0 });
+  const [from, setFrom] = useState('CNY');
+  const [to, setTo] = useState('USD');
+  const [amount, setAmount] = useState<number | string>(1000);
 
-  const { data: detailCoinCode, show: showDetailDrawer, set: setDetailDrawer, close: closeDetailDrawer } = useDrawer('');
-
-  const { run: onSearch } = useDebounceFn(async (_value: string) => {
-    const value = _value.trim();
-    if (!value) {
-      setCoins(remoteCoins);
-    } else {
-      const searchList = await searchWorkerWarp.searchRemoteCoin({
-        list: remoteCoins,
-        value,
-      });
-      setCoins(searchList);
-    }
+  // 以 CNY 为基准拉一次汇率表，任意两种币之间用比率换算
+  const { data: table, loading, refresh } = useRequest(() => Services.GetRateTable('CNY'), {
+    cacheKey: 'exchange-rate-table',
+    cacheTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 5,
   });
 
-  useRequest(() => Services.Coin.FromCoingecko(coin!.id, 'cny'), {
-    onSuccess: ([result]) => setPrice(result),
-    refreshDeps: [coin?.id],
-    ready: !!coin?.id,
-  });
+  const rates = table?.rates || {};
+  const fromRate = rates[from];
+  const toRate = rates[to];
 
-  const onSelect = async (code: string) => {
-    const coin = await Helpers.Coin.GetCoin(code);
-    if (coin) {
-      setCoin(coin);
-    }
-  };
+  const numericAmount = Number(amount) || 0;
 
-  const result = (() => {
-    try {
-      return {
-        cny: NP.times(price.cny, num),
-        usd: NP.times(price.usd, num),
-        btc: NP.times(price.btc, num),
-      };
-    } catch {
-      return;
+  const converted = useMemo(() => {
+    if (!fromRate || !toRate) {
+      return NaN;
     }
-  })();
+    return Services.convertAmount(numericAmount, fromRate, toRate);
+  }, [numericAmount, fromRate, toRate]);
+
+  // 单位汇率：1 from = ? to
+  const unitRate = fromRate && toRate ? toRate / fromRate : NaN;
+
+  const options = CURRENCIES.map((item) => ({
+    value: item.code,
+    label: `${item.code} ${item.name}`,
+  }));
+
+  function onSwap() {
+    setFrom(to);
+    setTo(from);
+  }
 
   return (
-    <CustomDrawerContent title="货币计算器" enterText="确定" onClose={props.onClose} onEnter={props.onEnter}>
+    <CustomDrawerContent title="汇率换算" enterText="确定" onClose={props.onClose} onEnter={props.onEnter}>
       <div className={styles.content}>
-        {coin?.id && (
-          <PureCard className={styles.card}>
-            <WebAppIcon
-              title={coin?.symbol?.toUpperCase() || ''}
-              iconType={Enums.WebIconType.Favicon}
-              favicon={coin?.image.small}
-              onClick={() => setDetailDrawer(coin.id)}
-            />
-            {result ? (
-              <div className={styles.info}>
-                <div className={styles.item}>
-                  <label>CNY:</label>
-                  <span>{result.cny}</span>
-                </div>
-                <div className={styles.item}>
-                  <label>USD:</label>
-                  <span>{result.usd}</span>
-                </div>
-                <div className={styles.item}>
-                  <label>BTC:</label>
-                  <span>{result.btc}</span>
+        <StandCard
+          title="汇率换算"
+          extra={
+            <div className={styles.toolbar}>
+              <RiRefreshLine onClick={refresh} />
+            </div>
+          }
+        >
+          <div className={clsx(styles.card, 'card-body')}>
+            <Spin spinning={loading}>
+              {/* 源货币 */}
+              <div className={styles.field}>
+                <label>从</label>
+                <div className={styles.row}>
+                  <Select
+                    className={styles.select}
+                    size="small"
+                    showSearch
+                    value={from}
+                    options={options}
+                    onChange={setFrom}
+                    optionFilterProp="label"
+                  />
+                  <Input
+                    className={styles.amount}
+                    size="small"
+                    type="number"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    placeholder="金额"
+                  />
                 </div>
               </div>
-            ) : (
-              '无法计算'
-            )}
-          </PureCard>
-        )}
-        <PureCard className={styles.card}>
-          <div className={styles.row}>
-            <Select
-              style={{ width: '100%' }}
-              size="small"
-              loading={coinsLoading}
-              showSearch
-              value={coin?.id}
-              placeholder="请搜索货币"
-              onSearch={onSearch}
-              onChange={onSelect}
-              notFoundContent={null}
-              allowClear
-            >
-              {coins.map((item) => (
-                <Option key={item.code}>{item.code}</Option>
-              ))}
-            </Select>
-          </div>
-          <div className={styles.row}>
-            <Input
-              addonBefore="数量"
-              addonAfter="枚"
-              size="small"
-              type="number"
-              value={num}
-              onChange={(e) => setNum(Number(e.target.value))}
-              placeholder="货币数量"
-            ></Input>
-          </div>
-        </PureCard>
-        {!!coinsState.length && (
-          <ChartCard TitleBar={<div className={styles.titleBar}>自选货币</div>}>
-            {coinsState.map(({ code }) => {
-              const { symbol } = remoteCoinsMap[code];
-              return (
-                <div key={code} className={styles.stock}>
-                  <div>
-                    <div className={styles.name}>
-                      <span className={styles.nameText}>{symbol.toUpperCase()}</span>
-                    </div>
-                    <div className={styles.code}>{code}</div>
+
+              <div className={styles.swapBar}>
+                <Button type="text" size="small" onClick={onSwap}>
+                  <RiArrowLeftRightLine style={{ height: 16, width: 16 }} />
+                </Button>
+              </div>
+
+              {/* 目标货币 */}
+              <div className={styles.field}>
+                <label>到</label>
+                <div className={styles.row}>
+                  <Select
+                    className={styles.select}
+                    size="small"
+                    showSearch
+                    value={to}
+                    options={options}
+                    onChange={setTo}
+                    optionFilterProp="label"
+                  />
+                  <div className={styles.result}>
+                    {Number.isFinite(converted) ? (
+                      <>
+                        <span className={styles.resultValue}>{Services.formatMoney(converted)}</span>
+                        <span className={styles.resultCode}>{to}</span>
+                      </>
+                    ) : (
+                      '--'
+                    )}
                   </div>
-                  <Button type="primary" disabled={coin?.id === code} onClick={() => onSelect(code)}>
-                    {coin?.id === code ? '已选择' : '选择'}
-                  </Button>
                 </div>
-              );
-            })}
-          </ChartCard>
-        )}
+              </div>
+
+              {/* 快捷金额 */}
+              <div className={styles.quick}>
+                {QUICK_AMOUNTS.map((value) => (
+                  <Button
+                    key={value}
+                    size="small"
+                    type={numericAmount === value ? 'primary' : 'default'}
+                    onClick={() => setAmount(value)}
+                  >
+                    {value}
+                  </Button>
+                ))}
+              </div>
+
+              {/* 单位汇率 */}
+              {Number.isFinite(unitRate) && (
+                <div className={styles.rateLine}>
+                  1 {from} = {Services.formatMoney(unitRate)} {to}
+                </div>
+              )}
+            </Spin>
+          </div>
+        </StandCard>
+
+        {/* 对主要货币一览 */}
+        <StandCard title="主要货币">
+          <div className={clsx(styles.card, 'card-body')}>
+            {Object.keys(rates).length ? (
+              <div className={styles.list}>
+                {CURRENCIES.filter((item) => item.code !== from).map((item) => {
+                  const rate = rates[item.code];
+                  if (!fromRate || !rate) {
+                    return null;
+                  }
+                  const value = Services.convertAmount(numericAmount, fromRate, rate);
+                  return (
+                    <div
+                      key={item.code}
+                      className={clsx(styles.listItem, {
+                        [styles.listItemActive]: item.code === to,
+                      })}
+                      onClick={() => setTo(item.code)}
+                    >
+                      <div className={styles.listName}>
+                        <span className={styles.code}>{item.code}</span>
+                        <span className={styles.name}>{item.name}</span>
+                      </div>
+                      <div className={styles.listValue}>{Services.formatMoney(value)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              !loading && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="汇率加载失败，点击右上角刷新" />
+            )}
+          </div>
+        </StandCard>
+
+        {table?.updateTime && <div className={styles.tip}>数据来源：{table.source} · 更新于 {table.updateTime}</div>}
       </div>
-      <CustomDrawer show={showDetailDrawer}>
-        <DetailCoinContent onEnter={closeDetailDrawer} onClose={closeDetailDrawer} code={detailCoinCode} />
-      </CustomDrawer>
     </CustomDrawerContent>
   );
 };

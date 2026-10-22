@@ -41,8 +41,7 @@ Fund Pilot 是一个常驻系统托盘的小工具：实时显示基金估值与
 
 | 文件 | 说明 |
 |---|---|
-| `FundPilot-<version>-portable.exe` | **绿色版（推荐）**，单文件免安装，数据在 exe 同级目录 |
-| `FundPilot-Setup-<version>.exe` | NSIS 安装包，可自选安装目录 |
+| `Fund Pilot-<version>-win.zip` | **绿色版（推荐）**，解压即用，数据全部在程序所在目录 |
 
 > Windows SmartScreen 对未签名 exe 可能提示「未知发布者」，点击「更多信息 → 仍要运行」即可。
 
@@ -59,21 +58,32 @@ npm run package-all         # 打包 macOS / Windows / Linux
 npm run package-portable    # 只打 Windows 绿色版单文件 exe（免安装）
 ```
 
-### Windows 绿色版
+### Windows 绿色版（唯一发布形态）
 
 ```bash
-npm run package-portable
-# 产物：release/build/FundPilot-<version>-portable.exe
+npm run package-zip
+# 产物：release/build/Fund Pilot-<version>-win.zip
 ```
 
-单文件 exe，双击即可运行，**不写注册表、不写系统目录**：
+解压到任意文件夹，双击 `Fund Pilot.exe` 即可运行。
 
-- 首次启动会在 exe 同目录创建 `FundPilotData/`（配置 `config.json`、缓存、日志）
-- 把 exe + `FundPilotData/` 一起拷走就是完整迁移，删掉文件夹即彻底卸载
-- 需要管理员权限的安装流程、开始菜单项、开机自启注册项都不会创建（「开机自启」开关在绿色版下依赖系统登录项，可自行决定是否启用）
+**不写注册表、不写 `%APPDATA%`，所有数据只在程序所在目录：**
 
-> 便携模式由 `src/main/portable.ts` 实现：检测 electron-builder 注入的 `PORTABLE_EXECUTABLE_DIR`，
-> 命中时把 `userData` / `sessionData` / 日志目录重定向到 exe 同级目录。
+- 首次启动在 exe 同级创建 `FundPilotData/`（`config.json`、`cache.json`、`logs/`）
+- `funds.json`（基金配置）也在 exe 同级
+- 整个文件夹拷走即完整迁移，删掉文件夹即彻底卸载
+- 「开机自启」是唯一会写注册表的操作（`HKCU\...\Run`），默认关闭，需要时手动开启
+
+**绿色模式判断逻辑**（`src/main/portable.ts`）：
+
+1. 有 `PORTABLE_EXECUTABLE_DIR` → 用它
+2. 已打包且 **exe 所在目录可写** → 视为绿色版，用 exe 目录
+3. 都不满足（如装在 `Program Files`）→ 回退系统默认目录
+
+所以 zip 解压到任意普通文件夹后直接双击就是绿色模式。
+
+> 为什么不提供单文件 portable.exe：它每次启动都要把 300+ MB 解压到 `%TEMP%` 下的随机目录，
+> 启动慢、反复占磁盘，且数据跟着临时目录走容易被清理。zip 解压一次后启动最快、路径最稳定。
 
 图标资源由 `tools/make_icons.py` 生成（依赖 Pillow）：
 

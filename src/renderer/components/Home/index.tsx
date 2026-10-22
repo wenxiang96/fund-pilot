@@ -10,8 +10,6 @@ import TabsBar from '@/components/TabsBar';
 import Collect from '@/components/Collect';
 import GroupTab from '@/components/GroupTab';
 import WebViewerDrawer from '@/components/WebViewerDrawer';
-import TranslateDrawer from '@/components/TranslateDrawer';
-import { stockTypesConfig } from '@/components/Toolbar/AppCenterContent/StockSearch';
 
 import { useAppSelector } from '@/utils/hooks';
 import * as Enums from '@/utils/enums';
@@ -21,15 +19,11 @@ import styles from './index.module.css';
 const FundView = React.lazy(() => import('@/components/Home/FundView'));
 const ZindexView = React.lazy(() => import('@/components/Home/ZindexView'));
 const QuotationView = React.lazy(() => import('@/components/Home/QuotationView'));
-const StockView = React.lazy(() => import('@/components/Home/StockView'));
-const CoinView = React.lazy(() => import('@/components/Home/CoinView'));
 
-const tabsKeyMap = {
+const tabsKeyMap: Partial<Record<Enums.TabKeyType, React.FC>> = {
   [Enums.TabKeyType.Fund]: FundGroup,
   [Enums.TabKeyType.Zindex]: ZindexGroup,
   [Enums.TabKeyType.Quotation]: QuotationGroup,
-  [Enums.TabKeyType.Stock]: StockGroup,
-  [Enums.TabKeyType.Coin]: CoinGroup,
 };
 
 export interface HomeProps {}
@@ -140,72 +134,22 @@ function QuotationGroup() {
   );
 }
 
-function StockGroup() {
-  const codeMap = useAppSelector((state) => state.wallet.stockConfigCodeMap);
-
-  return (
-    <GroupTab
-      tabKey={Enums.TabKeyType.Stock}
-      items={[
-        {
-          key: String(-1),
-          label: '全部',
-          children: <StockView filter={() => true} />,
-        },
-        {
-          key: String(-2),
-          label: '持有',
-          children: <StockView filter={(stock) => !!codeMap[stock.secid]?.cyfe} />,
-        },
-        ...stockTypesConfig.map((type) => ({
-          key: String(type.code),
-          label: type.name,
-          children: <StockView filter={(stock) => codeMap[stock.secid].type === type.code} />,
-        })),
-      ]}
-    />
-  );
-}
-
-function CoinGroup() {
-  return (
-    <GroupTab
-      tabKey={Enums.TabKeyType.Coin}
-      items={[
-        {
-          key: String(0),
-          label: '全部',
-          children: <CoinView filter={() => true} />,
-        },
-        {
-          key: String(1),
-          label: '上涨',
-          children: <CoinView filter={(coin) => Number(coin.change24h) >= 0} />,
-        },
-        {
-          key: String(2),
-          label: '下跌',
-          children: <CoinView filter={(coin) => Number(coin.change24h) < 0} />,
-        },
-      ]}
-    />
-  );
-}
-
 const Body = () => {
   const tabsActiveKey = useAppSelector((state) => state.tabs.activeKey);
   const bottomTabsSetting = useAppSelector((state) => state.setting.systemSetting.bottomTabsSetting);
 
   const items = useCreation(
     () =>
-      bottomTabsSetting.map((tab) => {
-        const Component = tabsKeyMap[tab.key];
-        return {
-          label: tab.key,
-          key: String(tab.key),
-          children: <Component />,
-        };
-      }),
+      bottomTabsSetting
+        .filter((tab) => !!tabsKeyMap[tab.key])
+        .map((tab) => {
+          const Component = tabsKeyMap[tab.key]!;
+          return {
+            label: tab.key,
+            key: String(tab.key),
+            children: <Component />,
+          };
+        }),
     [bottomTabsSetting]
   );
 
@@ -225,7 +169,6 @@ const Home: React.FC<HomeProps> = () => {
         <TabsBar />
       </Footer>
       <WebViewerDrawer />
-      <TranslateDrawer />
       <Collect title="home" />
     </div>
   );

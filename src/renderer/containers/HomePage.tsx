@@ -13,7 +13,6 @@ import {
   useUpdateContextMenuWalletsState,
   useShareStoreState,
   useSyncConfig,
-  useTranslate,
   useForceReloadApp,
   useFundFileSync,
 } from '@/utils/hooks';
@@ -30,7 +29,6 @@ function GlobalTask() {
   useTouchBar();
   useShareStoreState();
   useSyncConfig();
-  useTranslate();
   useForceReloadApp();
   useFundFileSync();
   useBootStrap();

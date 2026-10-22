@@ -1,8 +1,96 @@
 import NP from 'number-precision';
 import { fromUint8Array } from 'js-base64';
 import request from '@/utils/request';
+import { BOARD_LIST } from '@/constants/boards';
 
+/**
+ * 板块行情
+ *
+ * 东方财富 push2 的 clist 批量列表接口自 2026-10 起对部分网络环境返回空，
+ * 因此改为：本地板块代码表 + ulist.np 按代码批量取行情（实测稳定）。
+ * clist 仍作为首选，失败时自动降级。
+ */
 export async function GetQuotationsFromEastmoney(type = 't:2', pn = 1, pz = 100) {
+  const boardType = type === 't:1' ? 1 : type === 't:3' ? 3 : 2;
+  const list = await GetQuotationsByCode(boardType);
+  if (list.length) {
+    return list;
+  }
+  return GetQuotationsFromClist(type, pn, pz);
+}
+
+/** 按本地板块表 + ulist.np 批量取行情 */
+export async function GetQuotationsByCode(boardType: 1 | 2 | 3) {
+  const boards = BOARD_LIST.filter((item) => item.type === boardType);
+  if (!boards.length) {
+    return [] as Quotation.ResponseItem[];
+  }
+  const chunkSize = 100;
+  const chunks: typeof boards[] = [];
+  for (let i = 0; i < boards.length; i += chunkSize) {
+    chunks.push(boards.slice(i, i + chunkSize));
+  }
+
+  const results: Quotation.ResponseItem[] = [];
+  for (const chunk of chunks) {
+    const body = await requestChunkWithRetry(chunk.map(({ code }) => `90.${code}`));
+    const diff: any[] = body?.data?.diff || [];
+    diff.forEach((i) => {
+      results.push({
+        code: i.f12,
+        name: i.f14,
+        type: i.f19,
+        zxj: i.f2,
+        zde: NP.times(i.f20 || 0, i.f3 || 0, 10 ** -2),
+        zdd: i.f3 || 0,
+        zdf: i.f3 || 0,
+        zsz: i.f20,
+        hs: 0,
+        szjs: i.f104 || 0,
+        xdjs: i.f105 || 0,
+        lzgpCode: i.f140 || '',
+        lzgpMarket: i.f141 || 0,
+        lzgpName: i.f128 || '',
+        lzgpZdf: i.f136 || 0,
+        ldgpCode: i.f208 || '',
+        ldgpMarket: i.f209 || 0,
+        ldgpName: i.f207 || '',
+        ldgpZdf: i.f222 || 0,
+      } as Quotation.ResponseItem);
+    });
+    // 分片之间稍作停顿，避免触发限流
+    await new Promise((resolve) => setTimeout(resolve, 120));
+  }
+  return results;
+}
+
+/** 单次批量请求，失败重试一次（并发过高时东财会返回空） */
+async function requestChunkWithRetry(secids: string[]) {
+  const fields = 'f2,f3,f4,f12,f14,f19,f20,f104,f105,f128,f136,f140,f141,f207,f208,f209,f222';
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const { body } = await request<any>('https://push2.eastmoney.com/api/qt/ulist.np/get', {
+        searchParams: {
+          fltt: 2,
+          secids: secids.join(','),
+          fields,
+          _: Date.now(),
+        },
+        headers: { 'Referer': 'https://quote.eastmoney.com/' },
+        responseType: 'json',
+      });
+      const diff = body?.data?.diff;
+      if (Array.isArray(diff) && diff.length) {
+        return body;
+      }
+    } catch (error) {}
+    await new Promise((resolve) => setTimeout(resolve, 200 * (attempt + 1)));
+  }
+  return null;
+}
+
+/** 原 clist 批量接口（部分网络环境不可用，作为兜底） */
+export async function GetQuotationsFromClist(type = 't:2', pn = 1, pz = 100) {
   try {
     const { body: data } = await request<{
       rc: 0;

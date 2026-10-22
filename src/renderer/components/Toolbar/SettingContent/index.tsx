@@ -39,13 +39,13 @@ const { platform } = window.contextModules.process;
 
 export const APIOptions = [
   {
-    name: '东方财富-天天基金',
+    name: '天天基金',
     code: Enums.FundApiType.Eastmoney,
     recommond:
-      '★★★★★ (推荐) 天天基金批量估值接口；未提供盘中估值的基金自动改用新浪估值（均为官方数据源，不做本地推算）',
+      '★★★★★ (推荐) 天天基金批量估值接口；未提供盘中估值的基金自动改用新浪财经（均为官方数据源，不做本地推算）',
   },
   {
-    name: '新浪基金估值',
+    name: '新浪财经',
     code: Enums.FundApiType.Sina,
     recommond: '★★★★☆ 新浪财经估值曲线，对天天基金不提供估值的主动型基金覆盖更好',
   },
@@ -54,12 +54,12 @@ export const APIOptions = [
 /** 仅提供已公布净值、没有盘中估值的数据源（保留但标注，供偏好净值的用户选择） */
 export const APIOptionsNoEstimate = [
   {
-    name: '支付宝-蚂蚁基金',
+    name: '蚂蚁基金',
     code: Enums.FundApiType.Ant,
     recommond: '★★☆☆☆ 无盘中估值，仅已公布净值',
   },
   {
-    name: '同花顺-爱基金',
+    name: '爱基金',
     code: Enums.FundApiType.Fund10jqka,
     recommond: '★★☆☆☆ 无盘中估值，仅已公布净值',
   },
@@ -69,6 +69,9 @@ export const APIOptionsNoEstimate = [
     recommond: '★★☆☆☆ 无盘中估值，仅已公布净值',
   },
 ];
+
+/** 本版本支持的底栏模块 */
+const AVAILABLE_TABS = [Enums.TabKeyType.Fund, Enums.TabKeyType.Zindex, Enums.TabKeyType.Quotation];
 
 const presetColors = [
   '#F5222D',
@@ -108,6 +111,7 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
     proxyHostSetting,
     proxyPortSetting,
     hotkeySetting,
+    autoStartSetting,
     autoFreshSetting,
     freshDelaySetting,
     autoCheckUpdateSetting,
@@ -136,7 +140,10 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
   const [baseFontSize, setBaseFontSize] = useState(baseFontSizeSetting);
   const [systemTheme, setSystemTheme] = useState(systemThemeSetting);
   // 底栏设置
-  const [bottomTabs, setBottomTabs] = useState(bottomTabsSetting);
+  const [bottomTabs, setBottomTabs] = useState(
+    // 只保留本版本支持的模块，过滤历史配置里的股票/货币
+    bottomTabsSetting.filter(({ key }) => AVAILABLE_TABS.includes(key))
+  );
   // 通知设置
   const [adjustmentNotification, setAdjustmentNotification] = useState(adjustmentNotificationSetting);
   const [adjustmentNotificationTime, setAdjustmentNotifitationTime] = useState(adjustmentNotificationTimeSetting);
@@ -152,6 +159,11 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
   const [proxyPort, setProxyPort] = useState(proxyPortSetting);
   // 通用设置
   const { hotkey, onBlur: hotkeyInputOnBlur, onFocus: hotkeyInputOnFocus, reset: resetHotkey } = useInputShortcut(hotkeySetting);
+  // 开机自启：以系统实际状态为准
+  const [autoStart, setAutoStart] = useState(autoStartSetting);
+  useEffect(() => {
+    window.contextModules.autoStart.get().then(setAutoStart);
+  }, []);
   const [autoFresh, setAutoFresh] = useState(autoFreshSetting);
   const [freshDelay, setFreshDelay] = useState(freshDelaySetting);
   const [autoCheckUpdate, setAutoCheckUpdate] = useState(autoCheckUpdateSetting);
@@ -172,6 +184,8 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
   const [openaiImportFundsModel, setOpenaiImportFundsModel] = useState(openaiImportFundsModelSetting);
 
   function onSave() {
+    // 同步开机自启到系统
+    window.contextModules.autoStart.set(autoStart);
     dispatch(
       setSystemSettingAction({
         fundApiTypeSetting: fundapiType,
@@ -195,6 +209,7 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
         proxyHostSetting: proxyHost,
         proxyPortSetting: proxyPort,
         hotkeySetting: hotkey,
+        autoStartSetting: autoStart,
         autoFreshSetting: autoFresh,
         freshDelaySetting: freshDelay || defaultSystemSetting.freshDelaySetting,
         autoCheckUpdateSetting: autoCheckUpdate,
@@ -312,24 +327,24 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
                     }
                   >
                     <div className={clsx(styles.setting, 'card-body')}>
-                      <div className={styles.apiGroup}>
-                        <Radio.Group value={fundapiType} onChange={(e) => setFundApiType(e.target.value)}>
-                          {APIOptions.map((api) => (
-                            <Radio key={api.code} className={styles.radio} value={api.code}>
+                      <div className={styles.apiList}>
+                        {APIOptions.map((api) => (
+                          <label key={api.code} className={styles.apiRow}>
+                            <Radio className={styles.radio} checked={fundapiType === api.code} onChange={() => setFundApiType(api.code)}>
                               {api.name}
                             </Radio>
-                          ))}
-                        </Radio.Group>
-                      </div>
-                      <div className={styles.apiDivider}>以下数据源无盘中估值（仅已公布净值）</div>
-                      <div className={styles.apiGroup}>
-                        <Radio.Group value={fundapiType} onChange={(e) => setFundApiType(e.target.value)}>
-                          {APIOptionsNoEstimate.map((api) => (
-                            <Radio key={api.code} className={styles.radio} value={api.code}>
+                            <span className={styles.apiDesc}>{api.recommond}</span>
+                          </label>
+                        ))}
+                        <div className={styles.apiDivider}>以下数据源无盘中估值（仅已公布净值）</div>
+                        {APIOptionsNoEstimate.map((api) => (
+                          <label key={api.code} className={styles.apiRow}>
+                            <Radio className={styles.radio} checked={fundapiType === api.code} onChange={() => setFundApiType(api.code)}>
                               {api.name}
                             </Radio>
-                          ))}
-                        </Radio.Group>
+                            <span className={styles.apiDesc}>{api.recommond}</span>
+                          </label>
+                        ))}
                       </div>
                     </div>
                   </StandCard>
@@ -642,6 +657,10 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
                           placeholder="请输入快捷键"
                           type="text"
                         />
+                      </section>
+                      <section>
+                        <label>开机自启：</label>
+                        <Switch size="small" checked={autoStart} onChange={setAutoStart} />
                       </section>
                       <section>
                         <label>自动刷新：</label>

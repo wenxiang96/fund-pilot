@@ -38,6 +38,10 @@ declare global {
         readStringFile: (content: string) => Promise<string>;
         readFile: (content: string) => Promise<ArrayBuffer>;
       };
+      autoStart: {
+        get: () => Promise<boolean>;
+        set: (enabled: boolean) => Promise<{ ok: boolean; enabled: boolean; command: string; error: string }>;
+      };
       fundFile: {
         path: () => Promise<string>;
         read: () => Promise<{

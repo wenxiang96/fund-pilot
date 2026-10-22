@@ -6,46 +6,139 @@
 .card {
   padding: var(--base-padding);
 }
-.row {
-  margin-bottom: var(--base-padding);
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-.info {
-  margin-top: var(--base-padding);
-}
-.item {
+
+.toolbar {
   display: flex;
-  justify-content: space-between;
-  label {
-    font-weight: 500;
-  }
+  gap: 8px;
+  cursor: pointer;
 }
 
-.stock {
+.field {
+  margin-bottom: 8px;
+}
+
+.field label {
+  display: block;
+  font-size: calc(var(--base-font-size) * 5 / 6);
+  color: var(--inner-text-color);
+  margin-bottom: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.select {
+  flex: 1;
+  min-width: 0;
+}
+
+.amount {
+  width: 110px;
+  flex: none;
+}
+
+.result {
+  width: 110px;
+  flex: none;
+  height: 24px;
+  line-height: 24px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background-color: var(--inner-color);
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resultValue {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.resultCode {
+  margin-left: 4px;
+  font-size: calc(var(--base-font-size) * 5 / 6);
+  color: var(--inner-text-color);
+}
+
+.swapBar {
+  display: flex;
+  justify-content: center;
+  margin: 4px 0;
+}
+
+.quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.rateLine {
+  margin-top: 12px;
+  font-size: calc(var(--base-font-size) * 5 / 6);
+  color: var(--inner-text-color);
+  text-align: center;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.listItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 15px;
-  &:last-child {
-    margin-bottom: 0;
-  }
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-.name {
-  font-size: var(--base-font-size);
-  font-weight: 600;
-  padding-right: 10px;
+.listItem:hover {
+  background-color: var(--inner-color);
+}
 
-  .nameText {
-    margin-right: 10px;
-  }
+.listItemActive {
+  background-color: var(--inner-color);
+  outline: 1px solid var(--primary-color);
+}
+
+.listName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .code {
+  font-weight: 600;
   font-size: calc(var(--base-font-size) * 5 / 6);
 }
-.titleBar {
+
+.name {
   font-size: calc(var(--base-font-size) * 5 / 6);
+  color: var(--inner-text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.listValue {
+  font-size: calc(var(--base-font-size) * 5 / 6);
+  flex: none;
+  margin-left: 8px;
+}
+
+.tip {
+  margin-top: 8px;
+  text-align: center;
+  font-size: calc(var(--base-font-size) * 5 / 6);
+  color: var(--inner-text-color);
+  opacity: 0.7;
 }

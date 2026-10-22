@@ -702,7 +702,12 @@ export function useTabsFreshFn<T>(key: Enums.TabKeyType, fn: T) {
   const bottomTabsSetting = useAppSelector((state) => state.setting.systemSetting.bottomTabsSetting);
   const bottomTabsSettingKeyMap = Utils.GetCodeMap(bottomTabsSetting, 'key');
   const temp = async () => {};
-  return bottomTabsSettingKeyMap[key].show ? fn : temp;
+  // 该模块已从底栏移除（如股票/货币）时不再刷新
+  const tab = bottomTabsSettingKeyMap[key];
+  if (!tab) {
+    return temp;
+  }
+  return tab.show ? fn : temp;
 }
 
 export function useInputShortcut(initial: string) {

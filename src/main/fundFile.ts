@@ -36,9 +36,10 @@ let filePath = '';
 let lastWritten = '';
 let watcher: fs.StatWatcher | null = null;
 
-/** 绿色版放在 exe 旁边，安装版放在用户数据目录 */
+/** 绿色版放在 exe 旁边，安装版放在用户数据目录（portable.ts 已统一处理 userData） */
 export function getDefaultFundFilePath() {
-  const dir = process.env.PORTABLE_EXECUTABLE_DIR || app.getPath('userData');
+  const portableDir = process.env.FUNDPILOT_PORTABLE_DIR;
+  const dir = portableDir || app.getPath('userData');
   return path.join(dir, FILE_NAME);
 }
 

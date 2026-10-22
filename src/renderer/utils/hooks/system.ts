@@ -454,7 +454,6 @@ export function useMappingLocalToSystemSetting() {
     openaiBaseURLSetting,
     openaiApiKeySetting,
   } = useAppSelector((state) => state.setting.systemSetting);
-  const { hotkeySetting: translateHotkey } = useAppSelector((state) => state.translate.translateSetting);
 
   useIpcRendererListener('nativeTheme-updated', (e, data) => {
     dispatch(syncDarkMode(!!data?.darkMode));
@@ -495,9 +494,6 @@ export function useMappingLocalToSystemSetting() {
   useEffect(() => {
     dispatch(syncVaribleColors());
   }, [hashId]);
-  useEffect(() => {
-    ipcRenderer.invoke('set-translate-hotkey', translateHotkey);
-  }, [translateHotkey]);
 
   useEffect(() => {
     if (lowKeySetting) {
@@ -780,31 +776,6 @@ export function useSyncConfig() {
       dispatch(saveSyncConfigAction());
     }
   }, [syncConfigSetting, syncConfigPathSetting]);
-}
-
-export function useTranslate() {
-  const dispatch = useAppDispatch();
-  const show = useAppSelector((state) => state.translate.show); // translate当前显示状态
-
-  useIpcRendererListener('trigger-translate', (event, visible: boolean) => {
-    // menubar 当前显示状态
-    if (visible) {
-      if (show) {
-        ipcRenderer.invoke('set-menubar-visible', false);
-        dispatch(syncTranslateShowAction(false));
-      } else {
-        dispatch(syncTranslateShowAction(true));
-      }
-    } else {
-      if (show) {
-        flushSync(() => {
-          dispatch(syncTranslateShowAction(false));
-        });
-      }
-      dispatch(syncTranslateShowAction(true));
-      ipcRenderer.invoke('set-menubar-visible', true);
-    }
-  });
 }
 
 export function useForceReloadApp() {

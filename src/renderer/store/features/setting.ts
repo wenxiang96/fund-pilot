@@ -49,16 +49,6 @@ export const defaultSystemSetting: System.Setting = {
       name: '板块',
       show: true,
     },
-    {
-      key: Enums.TabKeyType.Stock,
-      name: '股票',
-      show: true,
-    },
-    {
-      key: Enums.TabKeyType.Coin,
-      name: '货币',
-      show: true,
-    },
   ],
 
   adjustmentNotificationSetting: true,
@@ -76,6 +66,7 @@ export const defaultSystemSetting: System.Setting = {
   hotkeySetting: '',
   autoFreshSetting: true,
   freshDelaySetting: 5,
+  autoStartSetting: false,
   autoCheckUpdateSetting: true,
   timestampSetting: Enums.TimestampType.Local,
 

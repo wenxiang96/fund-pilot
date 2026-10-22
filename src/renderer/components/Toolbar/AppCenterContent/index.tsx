@@ -6,7 +6,6 @@ import {
   RiGlobalFill,
   RiNewspaperFill,
   RiOpenaiFill,
-  RiTranslate,
   RiCalculatorFill,
   RiBubbleChartFill,
   RiPieChartFill,
@@ -35,8 +34,6 @@ import styles from './index.module.css';
 
 const ManageFundContent = React.lazy(() => import('@/components/Home/FundView/ManageFundContent'));
 const ManageZindexContent = React.lazy(() => import('@/components/Home/ZindexView/ManageZindexContent'));
-const ManageStockContent = React.lazy(() => import('@/components/Home/StockView/ManageStockContent'));
-const ManageCoinContent = React.lazy(() => import('@/components/Home/CoinView/ManageCoinContent'));
 const ManageWalletContent = React.lazy(() => import('@/components/Wallet/ManageWalletContent'));
 const ManageWebContent = React.lazy(() => import('@/components/WebViewerDrawer/ManageWebContent'));
 const FundStatisticsContent = React.lazy(() => import('@/components/Home/FundView/FundStatisticsContent'));
@@ -51,7 +48,6 @@ const CoinRankingContent = React.lazy(() => import('@/components/Home/CoinView/C
 const EconomicCalendarContent = React.lazy(() => import('@/components/Home/StockView/EconomicCalendarContent'));
 const GoldMarketContent = React.lazy(() => import('@/components/Home/QuotationView/GoldMarketContent'));
 const Calculator = React.lazy(() => import('@/components/Home/CoinView/Calculator'));
-const TranslateSettingContent = React.lazy(() => import('@/components/TranslateDrawer/TranslateSettingContent'));
 
 const { Search } = Input;
 const iconSize = { height: 18, width: 18 };
@@ -115,8 +111,6 @@ const AppCenterContent: React.FC<AppCenterContentProps> = (props) => {
   const [showManageFundDrawer, { setTrue: openManageFundDrawer, setFalse: closeManageFundDrawer }] = useBoolean(false);
   const [showManageWalletDrawer, { setTrue: openManageWalletDrawer, setFalse: closeManageWalletDrawer }] = useBoolean(false);
   const [showManageZindexDrawer, { setTrue: openManageZindexDrawer, setFalse: closeManageZindexDrawer }] = useBoolean(false);
-  const [showManageStockDrawer, { setTrue: openManageStockDrawer, setFalse: closeManageStockDrawer }] = useBoolean(false);
-  const [showManageCoinDrawer, { setTrue: openManageCoinDrawer, setFalse: closeManageCoinDrawer }] = useBoolean(false);
   const [showManageWebDrawer, { setTrue: openManageWebDrawer, setFalse: closeManageWebDrawer }] = useBoolean(false);
   const [showFundsStatisticsDrawer, { setTrue: openFundStatisticsDrawer, setFalse: closeFundStatisticsDrawer }] =
     useBoolean(false);
@@ -132,8 +126,6 @@ const AppCenterContent: React.FC<AppCenterContentProps> = (props) => {
     useBoolean(false);
   const [showGoldMarketDrawer, { setTrue: openGoldMarketDrawer, setFalse: closeGoldMarketDrawer }] = useBoolean(false);
   const [showCalculatorDrawer, { setTrue: openCalculatorDrawer, setFalse: closeCalculatorDrawer }] = useBoolean(false);
-  const [showTranslateSettingDrawer, { setTrue: openTranslateSettingDrawer, setFalse: closeTranslateSettingDrawer }] =
-    useBoolean(false);
 
   const openWebView = useOpenWebView();
 
@@ -161,16 +153,6 @@ const AppCenterContent: React.FC<AppCenterContentProps> = (props) => {
             click: openManageZindexDrawer,
           },
           {
-            title: '股票管理',
-            iconType: Enums.WebIconType.First,
-            click: openManageStockDrawer,
-          },
-          {
-            title: '货币管理',
-            iconType: Enums.WebIconType.First,
-            click: openManageCoinDrawer,
-          },
-          {
             title: '钱包管理',
             iconType: Enums.WebIconType.Svg,
             icon: <RiWalletFill style={{ ...iconSize }} />,
@@ -194,16 +176,10 @@ const AppCenterContent: React.FC<AppCenterContentProps> = (props) => {
             click: openFundStatisticsDrawer,
           },
           {
-            title: '货币计算器',
+            title: '汇率换算',
             iconType: Enums.WebIconType.Svg,
             icon: <RiCalculatorFill style={{ ...iconSize }} />,
             click: openCalculatorDrawer,
-          },
-          {
-            title: '快捷翻译',
-            iconType: Enums.WebIconType.Svg,
-            icon: <RiTranslate style={{ ...iconSize }} />,
-            click: openTranslateSettingDrawer,
           },
         ],
       },
@@ -321,12 +297,6 @@ const AppCenterContent: React.FC<AppCenterContentProps> = (props) => {
         <CustomDrawer show={showManageZindexDrawer}>
           <ManageZindexContent onClose={closeManageZindexDrawer} onEnter={closeManageZindexDrawer} />
         </CustomDrawer>
-        <CustomDrawer show={showManageStockDrawer}>
-          <ManageStockContent onClose={closeManageStockDrawer} onEnter={closeManageStockDrawer} />
-        </CustomDrawer>
-        <CustomDrawer show={showManageCoinDrawer}>
-          <ManageCoinContent onClose={closeManageCoinDrawer} onEnter={closeManageCoinDrawer} />
-        </CustomDrawer>
         <CustomDrawer show={showManageWebDrawer}>
           <ManageWebContent onClose={closeManageWebDrawer} onEnter={closeManageWebDrawer} />
         </CustomDrawer>
@@ -365,9 +335,6 @@ const AppCenterContent: React.FC<AppCenterContentProps> = (props) => {
         </CustomDrawer>
         <CustomDrawer show={showCalculatorDrawer}>
           <Calculator onClose={closeCalculatorDrawer} onEnter={closeCalculatorDrawer} />
-        </CustomDrawer>
-        <CustomDrawer show={showTranslateSettingDrawer}>
-          <TranslateSettingContent onClose={closeTranslateSettingDrawer} onEnter={closeTranslateSettingDrawer} />
         </CustomDrawer>
       </div>
     </CustomDrawerContent>

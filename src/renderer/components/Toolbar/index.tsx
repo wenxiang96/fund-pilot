@@ -8,8 +8,6 @@ import {
   useFreshFunds,
   useFreshZindexs,
   useFreshQuotations,
-  useFreshStocks,
-  useFreshCoins,
   useAppSelector,
   useIpcRendererListener,
   useFreshAll,
@@ -39,8 +37,6 @@ const ToolBar: React.FC<ToolBarProps> = () => {
   const freshFunds = useFreshFunds();
   const freshZindexs = useFreshZindexs();
   const freshQuotations = useFreshQuotations();
-  const freshStocks = useFreshStocks();
-  const freshCoins = useFreshCoins();
 
   const [showSettingContent, { setTrue: openSettingContent, setFalse: closeSettingContent }] = useBoolean(false);
   const [showAppCenterDrawer, { setTrue: openAppCenterDrawer, setFalse: closeAppCenterDrawer }] = useBoolean(false);
@@ -132,12 +128,6 @@ const ToolBar: React.FC<ToolBarProps> = () => {
         break;
       case Enums.TabKeyType.Quotation:
         freshQuotations();
-        break;
-      case Enums.TabKeyType.Stock:
-        freshStocks();
-        break;
-      case Enums.TabKeyType.Coin:
-        freshCoins();
         break;
       default:
         break;

@@ -97,7 +97,7 @@ export async function GetValuationsFromEastmoney(codes: string[]) {
           gszzl: item.GSZZL === null || item.GSZZL === undefined ? '' : String(item.GSZZL),
           gztime: item.GZTIME || '',
           dwjz: item.NAV === null || item.NAV === undefined ? '' : String(item.NAV),
-          jzrq: item.PDATE ? item.PDATE.slice(5) : '',
+          jzrq: item.PDATE || '',
         })) as Fund.ResponseItem[];
       }
     } catch (error) {
@@ -171,7 +171,7 @@ export async function GetFundFromMobileApi(code: string) {
     return {
       fundcode: data.FCODE,
       name: data.SHORTNAME,
-      jzrq: data.PDATE?.slice(5) || '',
+      jzrq: data.PDATE || '',
       dwjz: data.NAV,
       gsz: data.GSZ || data.NAV,
       gszzl: data.GSZZL || data.NAVCHGRT || '0',
