@@ -1,6 +1,7 @@
 {
   "name": "fund-pilot",
   "productName": "Fund Pilot",
+  "version": "1.0.5",
   "main": "release/app/dist/main/index.mjs",
   "scripts": {
     "dev": "bunx --bun electron-vite dev",
