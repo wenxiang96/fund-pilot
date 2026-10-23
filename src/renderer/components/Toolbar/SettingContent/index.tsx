@@ -183,9 +183,25 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
   const [openaiBaseModel, setOpenaiBaseModel] = useState(openaiBaseModelSetting);
   const [openaiImportFundsModel, setOpenaiImportFundsModel] = useState(openaiImportFundsModelSetting);
 
-  function onSave() {
-    // 同步开机自启到系统
-    window.contextModules.autoStart.set(autoStart);
+  async function onSave() {
+    // 同步开机自启到系统，并回读实际结果
+    try {
+      const result = await window.contextModules.autoStart.set(autoStart);
+      setAutoStart(result.enabled);
+      if (!result.ok) {
+        dialog.showMessageBox({
+          type: 'warning',
+          title: '开机自启设置失败',
+          message: result.error || '写入系统启动项失败，请检查权限',
+        });
+      }
+    } catch (error) {
+      dialog.showMessageBox({
+        type: 'warning',
+        title: '开机自启设置失败',
+        message: String(error),
+      });
+    }
     dispatch(
       setSystemSettingAction({
         fundApiTypeSetting: fundapiType,

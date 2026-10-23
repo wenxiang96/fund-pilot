@@ -8,12 +8,19 @@
  *
  * macOS / Linux 仍走 Electron 原生实现（macOS 用 LaunchAgent，Linux 用 .desktop）。
  */
-import fs from 'node:fs';
-import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { app } from 'electron';
 
-const RUN_KEY = 'HKCU\Software\Microsoft\Windows\CurrentVersion\Run';
+// 注意：注册表路径必须用双反斜杠，单反斜杠会被 JS 当成转义字符吞掉
+const RUN_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
 const VALUE_NAME = 'Fund Pilot';
+
+export type AutoStartResult = {
+  ok: boolean;
+  enabled: boolean;
+  command: string;
+  error: string;
+};
 
 /** 绿色版取真实 exe；开发模式取 electron.exe + 项目路径 */
 function getLaunchCommand() {
@@ -26,7 +33,6 @@ function getLaunchCommand() {
 
 function readWindowsValue(): string {
   try {
-    const { execFileSync } = require('node:child_process');
     const out = execFileSync('reg', ['query', RUN_KEY, '/v', VALUE_NAME], {
       encoding: 'utf-8',
       windowsHide: true,
@@ -45,11 +51,10 @@ export function isAutoStartEnabled(): boolean {
   return !!readWindowsValue();
 }
 
-export function setAutoStart(enabled: boolean): { ok: boolean; enabled: boolean; command: string; error: string } {
+export function setAutoStart(enabled: boolean): AutoStartResult {
   const command = getLaunchCommand();
   try {
     if (process.platform === 'win32') {
-      const { execFileSync } = require('node:child_process');
       if (enabled) {
         execFileSync('reg', ['add', RUN_KEY, '/v', VALUE_NAME, '/t', 'REG_SZ', '/d', command, '/f'], {
           windowsHide: true,
@@ -61,7 +66,13 @@ export function setAutoStart(enabled: boolean): { ok: boolean; enabled: boolean;
           // 本来就不存在，忽略
         }
       }
-      return { ok: true, enabled: isAutoStartEnabled(), command, error: '' };
+      const current = readWindowsValue();
+      return {
+        ok: enabled ? !!current : !current,
+        enabled: !!current,
+        command,
+        error: enabled && !current ? '写入注册表失败' : '',
+      };
     }
 
     app.setLoginItemSettings({ openAtLogin: enabled, openAsHidden: true });
