@@ -37,5 +37,8 @@ yarn-error.log
 release/app/dist
 release/build
 
+# 用户私人持仓数据（不应入库）
+funds.json
+
 # 本地临时预览图
 /tools/preview*.png

@@ -13,6 +13,56 @@ export function GetFundConfig(walletCode: string, walletsConfig: Wallet.SettingI
   return { fundConfig, codeMap };
 }
 
+/**
+ * 今日是否已有净值/估值（未开市、非交易日、数据源未更新时为 false）
+ * 只依赖行情字段，与持仓配置无关。
+ */
+export function HasTodayData(fund: Fund.ResponseItem & Fund.FixData) {
+  const today = dayjs().format('MM-DD');
+  if (fund.fixDate && fund.fixDate === today) {
+    return true;
+  }
+  return (
+    isEstimateToday(fund) &&
+    Utils.NotEmpty(fund.gsz) &&
+    fund.gsz !== '' &&
+    Number.isFinite(Number(fund.gsz))
+  );
+}
+
+/**
+ * 估值时间是否是今天。
+ * 未开市/非交易日时数据源返回的仍是上一交易日收盘的估值，不能算作当日盈亏。
+ */
+export function isEstimateToday(fund: Fund.ResponseItem) {
+  const raw = (fund.gztime || '').trim();
+  if (!raw) {
+    return false;
+  }
+  // 数据源用 "2026-暂无估值" 这类占位值
+  if (!/\d{2}:\d{2}/.test(raw)) {
+    return false;
+  }
+  const matched = raw.match(/(\d{4}-)?(\d{1,2})-(\d{1,2})/);
+  if (!matched) {
+    return false;
+  }
+  const date = `${matched[2].padStart(2, '0')}-${matched[3].padStart(2, '0')}`;
+  if (date !== dayjs().format('MM-DD')) {
+    return false;
+  }
+  // 时间点不能晚于当前时间（容忍 5 分钟误差）
+  const time = raw.match(/(\d{1,2}):(\d{2})\s*$/);
+  if (time) {
+    const now = dayjs();
+    const minutes = Number(time[1]) * 60 + Number(time[2]);
+    if (minutes > now.hour() * 60 + now.minute() + 5) {
+      return false;
+    }
+  }
+  return true;
+}
+
 export function GetFundConfigMaps(codes: string[], walletsConfig: Wallet.SettingItem[]) {
   return codes.map((code) => GetFundConfig(code, walletsConfig).codeMap);
 }
@@ -56,6 +106,16 @@ export async function GetFunds(config: Fund.SettingItem[], fundApiTypeSetting: E
           }
         });
       }
+
+      // 估值日期/时间必须是今天的，否则说明数据源还是上一交易日的收盘估值，
+      // 一律清掉，交给 CalcFund 当作「今日无数据」处理
+      resolved.forEach((fund) => {
+        if (!isEstimateToday(fund)) {
+          fund.gszzl = '';
+          fund.gztime = '';
+          fund.estimateSource = undefined;
+        }
+      });
 
       // 批量接口完全没返回的基金再逐只兜底
       const missing = config.filter(({ code }) => !valuationMap[code]).map(({ code }) => code);
@@ -130,7 +190,7 @@ async function GetFundFromSina(code: string) {
     jzrq: fix?.fixDate || '',
     gsz: estimate?.gsz || dwjz,
     gszzl: estimate?.gszzl || '',
-    gztime: estimate?.gztime || `${new Date().getFullYear()}-暂无估值`,
+    gztime: estimate?.gztime || '',
     estimateSource: estimate ? ('sina' as const) : undefined,
   } as Fund.ResponseItem;
 }
@@ -141,27 +201,59 @@ export function CalcFund(fund: Fund.ResponseItem & Fund.FixData, codeMap: Fund.C
   const cbj = config?.cbj;
   const memo = config?.memo;
 
-  const gzrq = fund.gztime?.slice(5, 10);
-  // jzrq 有的源给 "2026-10-20"，有的已经是 "10-20"，统一成 MM-DD
-  const jzrq = (() => {
-    const raw = fund.jzrq || '';
-    return /^\d{4}-/.test(raw) ? raw.slice(5) : raw;
-  })();
-  const isFix = fund.fixDate && fund.fixDate === gzrq;
+  // 统一成 MM-DD 再比较，避免 2026-10-20 / 10-20 两种写法
+  const toMMDD = (raw?: string) => {
+    const value = (raw || '').trim();
+    if (!value) {
+      return '';
+    }
+    const full = value.match(/(?:\d{4}-)?(\d{1,2})-(\d{1,2})/);
+    return full ? `${full[1].padStart(2, '0')}-${full[2].padStart(2, '0')}` : '';
+  };
+
+  const today = dayjs().format('MM-DD');
+  const gzrq = toMMDD(fund.gztime); // 估值所属日期
+  const jzrq = toMMDD(fund.jzrq); // 最近公布净值日期
+
+  // 只有「今天的」净值/估值才参与当日盈亏计算，否则未开市/非交易日会
+  // 把上一交易日的数据算成今日盈亏（刷新后未开市也显示当日盈亏的根因）
+  const isFix = !!fund.fixDate && fund.fixDate === today;
+  const hasEstimate =
+    !isFix &&
+    isEstimateToday(fund) &&
+    Utils.NotEmpty(fund.gsz) &&
+    fund.gsz !== '' &&
+    Number.isFinite(Number(fund.gsz));
+  const hasTodayData = isFix || hasEstimate;
+
+  // 最新净值（用于持有金额、持有收益）
   const dwjz = isFix ? fund.fixDwjz! : fund.dwjz!;
-  // 部分主动型基金数据侧不再提供盘中估值（GSZ 为 null），此时用上一净值兜底，
-  // 保证收益计算不出现 -100% 之类的异常
-  const hasEstimate = !isFix && Utils.NotEmpty(fund.gsz) && fund.gsz !== '' && Number.isFinite(Number(fund.gsz));
+  // 今日盈亏的比较基准：上一交易日净值
+  const prevDwjz = (() => {
+    if (!isFix) {
+      return fund.dwjz!;
+    }
+    // 今日净值已公布：数据源的 dwjz 可能已经是今日净值，用今日涨幅反推昨日净值
+    const zzl = Number(fund.fixZzl);
+    const navIsToday = jzrq === today || (fund.dwjz && Number(fund.dwjz) === Number(fund.fixDwjz));
+    if (navIsToday && Number.isFinite(zzl) && zzl !== 0) {
+      return NP.divide(fund.fixDwjz!, NP.plus(1, NP.divide(zzl, 100)));
+    }
+    return fund.dwjz || fund.fixDwjz!;
+  })();
+
+  // 估算值（今日）：已公布净值 -> 今日净值；有盘中估值 -> 估值；否则 -> 最新净值
   const gsz = isFix ? fund.fixDwjz! : hasEstimate ? fund.gsz! : dwjz;
-  const bjz = NP.minus(gsz!, dwjz) || 0;
-  const jrsygz = NP.times(cyfe, bjz);
+  const bjz = hasTodayData ? NP.minus(gsz!, prevDwjz) || 0 : 0;
+  const jrsygz = hasTodayData ? NP.times(cyfe, bjz) : 0;
   const gszz = NP.times(gsz!, cyfe);
-  const cyje = NP.times(fund.dwjz!, cyfe);
+  const cyje = NP.times(dwjz!, cyfe);
   const cbje = cbj && NP.times(cbj, cyfe);
   const cysyl = cbj && NP.divide(NP.minus(dwjz, cbj), cbj, 0.01);
   const cysy = cbj && NP.times(NP.minus(dwjz, cbj), cyfe);
-  const gszzl = isFix ? fund.fixZzl : hasEstimate ? fund.gszzl : ''; // 估算收益率（无估值时为空）
-  const gscysyl = cbj && cbj > 0 ? (isFix ? cysyl?.toFixed(2) : (Number(cysyl) + Number(gszzl)).toFixed(2)) : '';
+  // 估算收益率：无当日数据时留空，避免 UI 显示上一交易日的涨跌
+  const gszzl = isFix ? fund.fixZzl : hasEstimate ? fund.gszzl : '';
+  const gscysyl = cbj && cbj > 0 ? (isFix ? cysyl?.toFixed(2) : hasEstimate ? (Number(cysyl) + Number(gszzl)).toFixed(2) : '') : '';
   // cyfe: number; // 持有份额
   // bjz: number; // 比较值
   // jrsygz: number; // 今日收益估值
@@ -179,10 +271,12 @@ export function CalcFund(fund: Fund.ResponseItem & Fund.FixData, codeMap: Fund.C
     bjz, // 比较值
     jrsygz, // 今日收益估值
     gszz, // 估算
-    isFix, // 是否更新净值
-    hasEstimate, // 是否有盘中估值
+    isFix, // 今日净值是否已公布
+    hasEstimate, // 今日是否有盘中估值
+    hasTodayData, // 今日是否有数据（净值或估值）
     gsz, // 估算值（最新）
-    dwjz, // 单位净值（上一次）
+    dwjz, // 单位净值（最新）
+    prevDwjz, // 上一交易日净值（今日盈亏基准）
     gszzl, // 估算收益率
     gscysyl, // 估算持有收益率
     jzrq: isFix ? fund.fixDate : jzrq, // 净值日期
@@ -190,27 +284,18 @@ export function CalcFund(fund: Fund.ResponseItem & Fund.FixData, codeMap: Fund.C
 }
 
 export function CalcFunds(funds: Fund.ResponseItem[] = [], codeMap: Fund.CodeMap) {
-  const [zje, gszje, sygz, cysy, cbje] = funds.reduce(
-    ([a, b, c, d, e], fund) => {
+  const [zje, gszje, sygz, cysy, cbje, todayCount] = funds.reduce(
+    ([a, b, c, d, e, f], fund) => {
       const calcFundResult = CalcFund(fund, codeMap);
-      const { bjz, gsz, cysy, cbje } = calcFundResult; // 比较值（估算值 - 持有净值）
-      const cyfe = codeMap[fund.fundcode!]?.cyfe || 0; // 持有份额
-      const jrsygz = NP.times(cyfe, bjz); // 今日收益估值（持有份额 * 比较值）
-      const gszz = NP.times(gsz, cyfe); // 估算总值 (持有份额 * 估算值)
-      const dwje = NP.times(fund.dwjz!, cyfe); // 当前金额 (持有份额 * 当前净值)
-      return [a + dwje, b + gszz, c + jrsygz, d + (cysy || 0), e + (cbje || 0)];
+      const { jrsygz, gszz, cyje, cysy, cbje, hasTodayData } = calcFundResult;
+      return [a + cyje, b + gszz, c + (jrsygz || 0), d + (cysy || 0), e + (cbje || 0), f + (hasTodayData ? 1 : 0)];
     },
-    [0, 0, 0, 0, 0]
+    [0, 0, 0, 0, 0, 0]
   );
   const gssyl = zje ? NP.times(NP.divide(sygz, zje), 100) : 0;
   const cysyl = cbje ? NP.times(NP.divide(cysy, cbje), 100) : 0;
-  // zje: number; // 当前总金额
-  // gszje: number; // 估算总金额
-  // sygz: number; // 估算总收益
-  // gssyl: number; // 估算总收益率
-  // cysy:number; // 持有收益
-  // cysyl:number; // 持有收益率
-  return { zje, gszje, sygz, gssyl, cysy, cysyl };
+  // hasTodayData: 今日是否有任何基金拿到了净值/估值，没有时不应展示「今日收益」
+  return { zje, gszje, sygz, gssyl, cysy, cysyl, hasTodayData: todayCount > 0 };
 }
 
 export function CalcWalletsFund(fund: Fund.ResponseItem & Fund.FixData, codeMaps: Fund.CodeMap[]) {

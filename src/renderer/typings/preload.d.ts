@@ -40,7 +40,8 @@ declare global {
       };
       autoStart: {
         get: () => Promise<boolean>;
-        set: (enabled: boolean) => Promise<{ ok: boolean; enabled: boolean; command: string; error: string }>;
+        status: () => Promise<{ ok: boolean; enabled: boolean; command: string; actual: string; error: string }>;
+        set: (enabled: boolean) => Promise<{ ok: boolean; enabled: boolean; command: string; actual: string; error: string }>;
       };
       fundFile: {
         path: () => Promise<string>;

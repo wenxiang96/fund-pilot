@@ -47,8 +47,10 @@ const AssetsStatistics: React.FC<AssetsStatisticsProps> = ({ funds, codes }) => 
   const cysyl = cbje ? NP.times(NP.divide(cysy, cbje), 100) : 0;
 
   const displayCyje = eyeStatus ? cyje.toFixed(2) : Utils.Encrypt(cyje.toFixed(2));
-  const displaySygz = eyeStatus ? Utils.Yang(jrsygz.toFixed(2)) : Utils.Encrypt(Utils.Yang(jrsygz.toFixed(2)));
-  const displayGssyl = eyeStatus ? gssyl.toFixed(2) : Utils.Encrypt(gssyl.toFixed(2));
+  // 今日无净值/估值时不展示当日盈亏
+  const hasToday = funds.some(Helpers.Fund.HasTodayData);
+  const displaySygz = !hasToday ? '--' : eyeStatus ? Utils.Yang(jrsygz.toFixed(2)) : Utils.Encrypt(Utils.Yang(jrsygz.toFixed(2)));
+  const displayGssyl = !hasToday ? '--' : eyeStatus ? gssyl.toFixed(2) : Utils.Encrypt(gssyl.toFixed(2));
   const displayWinWalletCount = eyeStatus ? winWalletCount : Utils.Encrypt(String(winWalletCount));
   const displayWinFundCount = eyeStatus ? winFundCount : Utils.Encrypt(String(winFundCount));
   const displayCodesLength = eyeStatus ? codes.length : Utils.Encrypt(String(codes.length));
@@ -110,7 +112,7 @@ const AssetsStatistics: React.FC<AssetsStatisticsProps> = ({ funds, codes }) => 
                 })}
               >
                 {displayGssyl}
-                {eyeStatus ? '%' : ''}
+                {eyeStatus && hasToday ? '%' : ''}
               </span>
             </div>
           </div>

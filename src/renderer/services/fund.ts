@@ -168,14 +168,17 @@ export async function GetFundFromMobileApi(code: string) {
     if (!data || !data.NAV) {
       return;
     }
+    // 没有盘中估值时（GSZ/GSZZL 为 null）不能拿昨日的 NAVCHGRT 当今日涨跌，
+    // 否则未开市时界面会把上一交易日的涨跌显示成当日盈亏
+    const hasEstimate = !!data.GSZ && !!data.GSZZL;
     return {
       fundcode: data.FCODE,
       name: data.SHORTNAME,
       jzrq: data.PDATE || '',
       dwjz: data.NAV,
-      gsz: data.GSZ || data.NAV,
-      gszzl: data.GSZZL || data.NAVCHGRT || '0',
-      gztime: data.GZTIME || `${new Date().getFullYear()}-暂无估值`,
+      gsz: hasEstimate ? data.GSZ! : data.NAV,
+      gszzl: hasEstimate ? data.GSZZL! : '',
+      gztime: hasEstimate ? data.GZTIME || '' : '',
     } as Fund.ResponseItem;
   } catch (error) {
     return;
@@ -804,7 +807,7 @@ export async function GetQDIIFundFromEastMoney(code: string) {
       name: fixName,
       dwjz: fixDwjz,
       fundcode: code,
-      gztime: `${new Date().getFullYear()}-暂无估值`,
+      gztime: '',
       jzrq: `${new Date().getFullYear()}-${fixDate}`,
       gsz: fixDwjz,
       gszzl: '',
@@ -1052,7 +1055,7 @@ export async function GetQDIIFundFromFund123(code: string) {
     const result = {
       name: fundNameAbbr,
       fundcode: fundCode,
-      gztime: `${new Date().getFullYear()}-暂无估值`,
+      gztime: '',
       gsz: netValue,
       gszzl: '',
       jzrq: `${now.year()}-${netValueDate}`,
@@ -1161,7 +1164,7 @@ export async function GetQDIIFundFromFund10jqka(code: string) {
     return {
       name: data.name,
       fundcode: data.code,
-      gztime: `${new Date().getFullYear()}-暂无估值`,
+      gztime: '',
       gszzl: '',
       jzrq: data.enddate,
       dwjz: data.fundtype === '货币型' ? '1.0000' : data.net, // FIXME:货币基金无法获取单位净值，统一按 1.0000 处理

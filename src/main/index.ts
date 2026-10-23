@@ -36,11 +36,13 @@ import {
 } from './util';
 import HttpClient from './httpClient';
 import { readFundFile, writeFundFile, watchFundFile, setFundFilePath, getFundFilePath } from './fundFile';
-import { isAutoStartEnabled, setAutoStart, syncAutoStartPath } from './autoStart';
+import { AUTOSTART_FLAG, getAutoStartStatus, setAutoStart, syncAutoStartPath } from './autoStart';
 import * as Enums from '../renderer/utils/enums';
 
 let mb: Menubar;
 let openBackupFilePath = '';
+/** 开机自启拉起：只驻留托盘，不弹窗口、不抢焦点 */
+const isAutoStartLaunch = process.argv.includes(AUTOSTART_FLAG);
 let ua = '';
 let fakeUA = '';
 let proxyMode = '';
@@ -84,8 +86,9 @@ function appEmits() {
   });
   app.on('second-instance', (event, argv, cwd) => {
     // Someone tried to run a second instance, we should focus our window.
-    if (mb.window) {
+    if (mb?.window) {
       if (mb.window.isMinimized()) mb.window.restore();
+      mb.showWindow();
       mb.window.focus();
     }
   });
@@ -134,7 +137,12 @@ function main() {
     return dialog.showOpenDialog(config);
   });
   ipcMain.handle('show-current-window', (event, config) => {
-    mb.window?.show();
+    if (mb.window && !mb.window.isVisible()) {
+      mb.showWindow();
+    } else {
+      mb.window?.show();
+    }
+    mb.window?.focus();
   });
   ipcMain.handle('get-should-use-dark-colors', (event, config) => {
     return nativeTheme.shouldUseDarkColors;
@@ -288,7 +296,8 @@ function main() {
     return next;
   });
   // 开机自启
-  ipcMain.handle('auto-start-get', () => isAutoStartEnabled());
+  ipcMain.handle('auto-start-get', () => getAutoStartStatus().enabled);
+  ipcMain.handle('auto-start-status', () => getAutoStartStatus());
   ipcMain.handle('auto-start-set', (event, enabled: boolean) => setAutoStart(enabled));
   ipcMain.handle('fund-file-reveal', () => {
     const target = getFundFilePath();
@@ -352,7 +361,7 @@ function main() {
     });
 
     // 打开开发者工具
-    if (!app.isPackaged) {
+    if (!app.isPackaged && !isAutoStartLaunch) {
       mb.window?.webContents.openDevTools({ mode: 'undocked' });
     }
   });
@@ -361,6 +370,20 @@ function main() {
   watchFundFile();
   // 绿色版移动目录后，把注册表启动项指向当前 exe
   syncAutoStartPath();
+  // 开机自启拉起时保持静默：menubar 的 preloadWindow 只创建隐藏窗口，这里再兜底隐藏一次
+  if (isAutoStartLaunch) {
+    const keepHidden = () => {
+      if (mb.window?.isVisible()) {
+        mb.hideWindow();
+      }
+    };
+    mb.on('after-create-window', () => {
+      mb.window?.webContents.once('did-finish-load', () => {
+        mb.window?.setSkipTaskbar(true);
+        keepHidden();
+      });
+    });
+  }
 
   // new AppUpdater({ icon: nativeIcon, win: mb.window });
 }

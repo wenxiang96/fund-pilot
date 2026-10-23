@@ -2,6 +2,10 @@
   padding: 0 var(--base-padding);
 }
 
+.warnText {
+  color: var(--reduce-color);
+}
+
 .logo {
   display: flex;
   justify-content: center;

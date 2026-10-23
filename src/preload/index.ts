@@ -72,6 +72,7 @@ contextBridge.exposeInMainWorld('contextModules', {
   },
   autoStart: {
     get: () => ipcRenderer.invoke('auto-start-get'),
+    status: () => ipcRenderer.invoke('auto-start-status'),
     set: (enabled: boolean) => ipcRenderer.invoke('auto-start-set', enabled),
   },
   fundFile: {

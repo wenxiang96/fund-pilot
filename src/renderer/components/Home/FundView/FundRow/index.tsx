@@ -30,7 +30,11 @@ const FundRow: React.FC<RowProps> = (props) => {
   const fundConfigCodeMap = useAppSelector((state) => state.wallet.fundConfigCodeMap);
   const eyeStatus = useAppSelector((state) => state.wallet.eyeStatus);
   const calcFundResult = Helpers.Fund.CalcFund(fund, fundConfigCodeMap);
-  const { isFix } = calcFundResult;
+  const { isFix, hasTodayData } = calcFundResult;
+  // 今日无数据（未开市 / 非交易日 / 数据源还没出估值）时展示 --，不再把上一交易日算成今日
+  const hasToday = !!hasTodayData;
+  const gszzlText = hasToday && calcFundResult.gszzl !== '' ? `${Utils.Yang(calcFundResult.gszzl)} %` : '--';
+  const jrsygzText = hasToday ? `¥ ${Utils.Yang(calcFundResult.jrsygz.toFixed(2))}` : '--';
 
   const fundConfig = fundConfigCodeMap[fund.fundcode!];
 
@@ -69,7 +73,7 @@ const FundRow: React.FC<RowProps> = (props) => {
             {/* 估算持有收益率 */}
             {!!calcFundResult.cbj && eyeStatus && (
               <span className={clsx(Utils.GetValueColor(calcFundResult.gscysyl).blockClass, styles.gscysyl)}>
-                {calcFundResult.gscysyl === '' ? `0.00%` : `${Utils.Yang(calcFundResult.gscysyl)}%`}
+                {calcFundResult.gscysyl === '' ? `--` : `${Utils.Yang(calcFundResult.gscysyl)}%`}
               </span>
             )}
             {isFix && <span className={styles.warn}>更新</span>}
@@ -81,7 +85,7 @@ const FundRow: React.FC<RowProps> = (props) => {
                 <span>{isFix ? calcFundResult.fixDate : calcFundResult.gztime?.slice(5)}</span>
                 {eyeStatus && (
                   <span className={clsx(Utils.GetValueColor(calcFundResult.jrsygz).textClass, styles.worth)}>
-                    {Utils.Yang(calcFundResult.jrsygz.toFixed(2))}
+                    {hasToday ? Utils.Yang(calcFundResult.jrsygz.toFixed(2)) : '--'}
                   </span>
                 )}
               </div>
@@ -89,13 +93,9 @@ const FundRow: React.FC<RowProps> = (props) => {
           )}
         </div>
         {conciseSetting ? (
-          <div className={clsx(styles.conciseValue, Utils.GetValueColor(calcFundResult.gszzl).textClass)}>
-            {calcFundResult.gszzl === '' ? `  0.00 %` : `${Utils.Yang(calcFundResult.gszzl)} %`}
-          </div>
+          <div className={clsx(styles.conciseValue, Utils.GetValueColor(calcFundResult.gszzl).textClass)}>{gszzlText}</div>
         ) : (
-          <div className={clsx(styles.value, Utils.GetValueColor(calcFundResult.gszzl).blockClass)}>
-            {calcFundResult.gszzl === '' ? `  0.00 %` : `${Utils.Yang(calcFundResult.gszzl)} %`}
-          </div>
+          <div className={clsx(styles.value, Utils.GetValueColor(calcFundResult.gszzl).blockClass)}>{gszzlText}</div>
         )}
       </div>
       <Collapse isOpened={fund.collapse}>
@@ -105,6 +105,12 @@ const FundRow: React.FC<RowProps> = (props) => {
             <span>{calcFundResult.dwjz}</span>
             {!!calcFundResult.jzrq && <span>（{calcFundResult.jzrq}）</span>}
           </section>
+          {!hasToday && (
+            <section className={styles.fullRow}>
+              <span>今日数据：</span>
+              <span className={styles.estimateHint}>未开市 / 今日暂无估值</span>
+            </section>
+          )}
           {fund.estimateSource === 'sina' && (
             <section className={styles.fullRow}>
               <span>估值来源：</span>
@@ -133,9 +139,7 @@ const FundRow: React.FC<RowProps> = (props) => {
           </section>
           <section>
             <span>{isFix ? '今日收益：' : '估算收益：'}</span>
-            <span className={clsx(Utils.GetValueColor(calcFundResult.jrsygz).textClass)}>
-              ¥ {Utils.Yang(calcFundResult.jrsygz.toFixed(2))}
-            </span>
+            <span className={clsx(Utils.GetValueColor(calcFundResult.jrsygz).textClass)}>{jrsygzText}</span>
           </section>
           <section>
             <span>持有收益：</span>

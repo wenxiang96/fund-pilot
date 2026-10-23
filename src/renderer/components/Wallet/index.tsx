@@ -29,14 +29,23 @@ const Wallet: React.FC<WalletProps> = () => {
   const currentWalletConfig = walletConfigCodeMap[currentWalletCode];
 
   const calcResult = (() => {
-    const { zje, sygz, gssyl, cysy, cysyl, ...reset } = Helpers.Wallet.CalcWallet({
+    const { zje, sygz, gssyl, cysy, cysyl, hasTodayData, ...reset } = Helpers.Wallet.CalcWallet({
       code: currentWalletCode,
       walletConfig,
       wallets,
     });
     const displayZje = eyeStatus ? zje.toFixed(2) : Utils.Encrypt(zje.toFixed(2));
-    const displaySygz = eyeStatus ? sygz.toFixed(2) : Utils.Encrypt(Utils.Yang(sygz.toFixed(2)));
-    const displayGssyl = eyeStatus ? gssyl.toFixed(2) : Utils.Encrypt(Utils.Yang(gssyl.toFixed(2)));
+    // 今日无净值/估值（未开市、非交易日）时不展示当日盈亏，避免拿上一交易日的数据冒充今天
+    const displaySygz = !hasTodayData
+      ? '--'
+      : eyeStatus
+      ? sygz.toFixed(2)
+      : Utils.Encrypt(Utils.Yang(sygz.toFixed(2)));
+    const displayGssyl = !hasTodayData
+      ? '--'
+      : eyeStatus
+      ? gssyl.toFixed(2)
+      : Utils.Encrypt(Utils.Yang(gssyl.toFixed(2)));
     const displayCysy = eyeStatus ? cysy.toFixed(2) : Utils.Encrypt(Utils.Yang(cysy.toFixed(2)));
     const displayCysyl = eyeStatus ? cysyl.toFixed(2) : Utils.Encrypt(Utils.Yang(cysyl.toFixed(2)));
 
@@ -46,6 +55,7 @@ const Wallet: React.FC<WalletProps> = () => {
       displayGssyl,
       displayCysy,
       displayCysyl,
+      hasTodayData,
       ...reset,
     };
   })();
@@ -118,12 +128,14 @@ const Wallet: React.FC<WalletProps> = () => {
               <div className={styles.sygz}>
                 <div className={styles.tag}>基金:</div>
                 <div className={clsx(Utils.GetValueColor(calcResult.calcFundResult.sygz).textClass)}>
-                  {Utils.Yang(calcResult.calcFundResult.sygz.toFixed(2))}
+                  {calcResult.calcFundResult.hasTodayData
+                    ? Utils.Yang(calcResult.calcFundResult.sygz.toFixed(2))
+                    : '--'}
                 </div>
               </div>
               <div className={styles.numIndex}>
                 <div className={clsx(Utils.GetValueColor(calcResult.calcFundResult.gssyl).textClass)}>
-                  {calcResult.calcFundResult.gssyl.toFixed(2)}%
+                  {calcResult.calcFundResult.hasTodayData ? `${calcResult.calcFundResult.gssyl.toFixed(2)}%` : '--'}
                 </div>
                 <div>{calcResult.calcFundResult.zje.toFixed(2)}</div>
               </div>
@@ -147,13 +159,21 @@ const Wallet: React.FC<WalletProps> = () => {
       >
         <div className={styles.numBar}>
           <div className={clsx(styles.sygz, styles.zsygz, Utils.GetValueColor(calcResult.displaySygz).textClass)}>
-            {eyeStatus ? `¥ ${Utils.Yang(calcResult.displaySygz)}` : calcResult.displaySygz}
+            {calcResult.displaySygz === '--'
+              ? '--'
+              : eyeStatus
+              ? `¥ ${Utils.Yang(calcResult.displaySygz)}`
+              : calcResult.displaySygz}
           </div>
           <div className={styles.numIndex}>
             <div>
               {!miniMode && <label>今日收益率</label>}
               <div className={clsx(Utils.GetValueColor(calcResult.displayGssyl).textClass)}>
-                {eyeStatus ? `${Utils.Yang(calcResult.displayGssyl)}%` : calcResult.displayGssyl}
+                {calcResult.displayGssyl === '--'
+                  ? '--'
+                  : eyeStatus
+                  ? `${Utils.Yang(calcResult.displayGssyl)}%`
+                  : calcResult.displayGssyl}
               </div>
             </div>
             <div>

@@ -161,8 +161,12 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
   const { hotkey, onBlur: hotkeyInputOnBlur, onFocus: hotkeyInputOnFocus, reset: resetHotkey } = useInputShortcut(hotkeySetting);
   // 开机自启：以系统实际状态为准
   const [autoStart, setAutoStart] = useState(autoStartSetting);
+  const [autoStartError, setAutoStartError] = useState('');
   useEffect(() => {
-    window.contextModules.autoStart.get().then(setAutoStart);
+    window.contextModules.autoStart.status().then((status) => {
+      setAutoStart(status.enabled);
+      setAutoStartError(status.enabled ? '' : status.error || '');
+    });
   }, []);
   const [autoFresh, setAutoFresh] = useState(autoFreshSetting);
   const [freshDelay, setFreshDelay] = useState(freshDelaySetting);
@@ -188,6 +192,7 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
     try {
       const result = await window.contextModules.autoStart.set(autoStart);
       setAutoStart(result.enabled);
+      setAutoStartError(result.enabled ? '' : result.error || '');
       if (!result.ok) {
         dialog.showMessageBox({
           type: 'warning',
@@ -678,6 +683,23 @@ const SettingContent: React.FC<SettingContentProps> = (props) => {
                         <label>开机自启：</label>
                         <Switch size="small" checked={autoStart} onChange={setAutoStart} />
                       </section>
+                      {autoStartError && (
+                        <section>
+                          <label>启动项状态：</label>
+                          <a
+                            className={styles.warnText}
+                            onClick={() =>
+                              dialog.showMessageBox({
+                                type: 'warning',
+                                title: '开机自启可能不生效',
+                                message: autoStartError,
+                              })
+                            }
+                          >
+                            异常（点击查看）
+                          </a>
+                        </section>
+                      )}
                       <section>
                         <label>自动刷新：</label>
                         <Switch size="small" checked={autoFresh} onChange={setAutoFresh} />

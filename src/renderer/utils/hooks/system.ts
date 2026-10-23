@@ -524,39 +524,51 @@ export function useTrayContent() {
   const eyeStatus = useAppSelector((state) => state.wallet.eyeStatus);
 
   // 当前选中钱包
-  const { sygz, gssyl } = Helpers.Wallet.CalcWallet({ code: currentWalletCode, walletConfig, wallets });
+  const { sygz, gssyl, hasTodayData } = Helpers.Wallet.CalcWallet({ code: currentWalletCode, walletConfig, wallets });
 
   // 所有钱包
   const allCalcResult = (() => {
     const allResult = wallets.reduce(
       (r, { code }) => {
-        const { zje, gszje } = Helpers.Wallet.CalcWallet({ code, walletConfig, wallets });
+        const { zje, gszje, hasTodayData } = Helpers.Wallet.CalcWallet({ code, walletConfig, wallets });
 
         return {
           zje: r.zje + zje,
           gszje: r.gszje + gszje,
+          hasTodayData: r.hasTodayData || hasTodayData,
         };
       },
-      { zje: 0, gszje: 0 }
+      { zje: 0, gszje: 0, hasTodayData: false }
     );
     const sygz = NP.minus(allResult.gszje, allResult.zje);
-    return { sygz, gssyl: allResult.zje ? NP.times(NP.divide(sygz, allResult.zje), 100) : 0 };
+    return {
+      sygz,
+      gssyl: allResult.zje ? NP.times(NP.divide(sygz, allResult.zje), 100) : 0,
+      hasTodayData: allResult.hasTodayData,
+    };
   })();
 
   const trayContent = (() => {
     const group = [trayContentSetting].flat();
+    // 今日无净值/估值时，当日盈亏类指标显示 --，不再显示 0.00
+    const showSy = hasTodayData;
+    const showAllSy = allCalcResult.hasTodayData;
     let content = group
       .map((trayContentType: Enums.TrayContent) => {
         switch (trayContentType) {
           case Enums.TrayContent.Sy:
+            if (!showSy) return '--';
             return traySimpleIncomeSetting ? `${Utils.Yang(Utils.FormatNumberAbbr(sygz))}` : `${Utils.Yang(sygz.toFixed(2))}`;
           case Enums.TrayContent.Syl:
+            if (!showSy) return '--';
             return `${Utils.Yang(gssyl.toFixed(2))}%`;
           case Enums.TrayContent.Zsy:
+            if (!showAllSy) return '--';
             return traySimpleIncomeSetting
               ? `${Utils.Yang(Utils.FormatNumberAbbr(allCalcResult.sygz))}`
               : `${Utils.Yang(allCalcResult.sygz.toFixed(2))}`;
           case Enums.TrayContent.Zsyl:
+            if (!showAllSy) return '--';
             return `${Utils.Yang(allCalcResult.gssyl.toFixed(2))}%`;
           default:
             break;

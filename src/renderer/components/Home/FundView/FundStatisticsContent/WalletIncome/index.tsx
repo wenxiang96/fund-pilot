@@ -75,14 +75,16 @@ const WalletIncome: React.FC<WalletIncomeProps> = ({ funds = [], codes = [] }) =
             },
             data: codes.map((code) => {
               const { codeMap } = Helpers.Fund.GetFundConfig(code, walletsConfig);
-              const { sygz, gssyl, cysy, cysyl } = Helpers.Fund.CalcFunds(funds, codeMap);
+              const { sygz, gssyl, cysy, cysyl, hasTodayData } = Helpers.Fund.CalcFunds(funds, codeMap);
+              const isToday = incomeType.type === Enums.WalletIncomType.Jrsy || incomeType.type === Enums.WalletIncomType.Jrsyl;
               const values = {
                 [Enums.WalletIncomType.Jrsy]: sygz.toFixed(2),
                 [Enums.WalletIncomType.Jrsyl]: gssyl.toFixed(2),
                 [Enums.WalletIncomType.Cysy]: cysy.toFixed(2),
                 [Enums.WalletIncomType.Cysyl]: cysyl.toFixed(2),
               };
-              const value = values[incomeType.type];
+              // 今日无净值/估值时不画当日盈亏，避免拿上一交易日的数据冒充今天
+              const value = isToday && !hasTodayData ? '-' : values[incomeType.type];
               return {
                 value,
                 itemStyle: {

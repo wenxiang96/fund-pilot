@@ -42,6 +42,7 @@ export function CalcWallet(option: { wallets: Wallet.StateItem[]; walletConfig: 
     gssyl, // 估算收益率
     cysy, // 持有收益
     cysyl, // 持有收益率
+    hasTodayData: calcFundResult.hasTodayData || calcStockResult.hasTodayData,
     calcFundResult,
     calcStockResult,
   };

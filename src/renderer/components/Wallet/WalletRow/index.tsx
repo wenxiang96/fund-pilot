@@ -64,10 +64,14 @@ const WalletRow: React.FC<WalletRowProps> = (props) => {
   };
   const { funds, updateTime } = walletState;
   const { codeMap } = Helpers.Fund.GetFundConfig(wallet.code, walletsConfig);
-  const { zje, sygz, gssyl, cysy, cysyl } = Helpers.Fund.CalcFunds(funds, codeMap);
+  const { zje, sygz, gssyl, cysy, cysyl, hasTodayData } = Helpers.Fund.CalcFunds(funds, codeMap);
   const displayZje = eyeStatus ? zje.toFixed(2) : Utils.Encrypt(zje.toFixed(2));
-  const displaySygz = eyeStatus ? Utils.Yang(sygz.toFixed(2)) : Utils.Encrypt(Utils.Yang(sygz.toFixed(2)));
-  const displayGssyl = eyeStatus ? gssyl.toFixed(2) : Utils.Encrypt(gssyl.toFixed(2));
+  const displaySygz = !hasTodayData
+    ? '--'
+    : eyeStatus
+    ? Utils.Yang(sygz.toFixed(2))
+    : Utils.Encrypt(Utils.Yang(sygz.toFixed(2)));
+  const displayGssyl = !hasTodayData ? '--' : eyeStatus ? gssyl.toFixed(2) : Utils.Encrypt(gssyl.toFixed(2));
   const displayCysy = eyeStatus ? cysy.toFixed(2) : Utils.Encrypt(cysy.toFixed(2));
   const displayCysyl = eyeStatus ? cysyl.toFixed(2) : Utils.Encrypt(cysyl.toFixed(2));
 
@@ -132,7 +136,7 @@ const WalletRow: React.FC<WalletRowProps> = (props) => {
             <div>收益(今)：{displaySygz}</div>
             <div>
               收益率(今)： {displayGssyl}
-              {eyeStatus ? '%' : ''}
+              {eyeStatus && hasTodayData ? '%' : ''}
             </div>
           </div>
           <div className={styles.infoRow}>

@@ -55,17 +55,13 @@ export function CalcStock(stock: Stock.ResponseItem, codeMap: Stock.CodeMap) {
 }
 
 export function CalcStocks(stocks: Stock.ResponseItem[] = [], codeMap: Stock.CodeMap) {
-  const [zje, gszje, sygz, cysy, cbje] = stocks.reduce(
-    ([a, b, c, d, e], stock) => {
+  const [zje, gszje, sygz, cysy, cbje, todayCount] = stocks.reduce(
+    ([a, b, c, d, e, f], stock) => {
       const calcStockResult = CalcStock(stock, codeMap);
-      const { bjz, gsz, cysy, cbje } = calcStockResult; // 比较值（估算值 - 持有净值）
-      const cyfe = codeMap[stock.secid]?.cyfe || 0; // 持有份额
-      const jrsygz = NP.times(cyfe, bjz); // 今日收益估值（持有份额 * 比较值）
-      const gszz = NP.times(gsz, cyfe); // 估算总值 (持有份额 * 估算值)
-      const dwje = NP.times(stock.zs!, cyfe); // 当前金额 (持有份额 * 当前净值)
-      return [a + dwje, b + gszz, c + jrsygz, d + (cysy || 0), e + (cbje || 0)];
+      const { jrsygz, gszz, cyje, cysy, cbje } = calcStockResult;
+      return [a + cyje, b + gszz, c + (jrsygz || 0), d + (cysy || 0), e + (cbje || 0), f + 1];
     },
-    [0, 0, 0, 0, 0]
+    [0, 0, 0, 0, 0, 0]
   );
   const gssyl = zje ? NP.times(NP.divide(sygz, zje), 100) : 0;
   const cysyl = cbje ? NP.times(NP.divide(cysy, cbje), 100) : 0;
@@ -75,7 +71,7 @@ export function CalcStocks(stocks: Stock.ResponseItem[] = [], codeMap: Stock.Cod
   // gssyl: number; // 估算总收益率
   // cysy:number; // 持有收益
   // cysyl:number; // 持有收益率
-  return { zje, gszje, sygz, gssyl, cysy, cysyl };
+  return { zje, gszje, sygz, gssyl, cysy, cysyl, hasTodayData: todayCount > 0 };
 }
 
 export async function GetStocks(config: Stock.SettingItem[]) {
